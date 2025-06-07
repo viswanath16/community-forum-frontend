@@ -128,7 +128,7 @@ const mockThreads = [
 // Categories API
 export const fetchCategories = async () => {
   try {
-    const response = await api.get('/events/categories');
+    const response = await api.get('/categories');
     // Handle different possible response structures
     if (Array.isArray(response.data)) {
       return response.data;
