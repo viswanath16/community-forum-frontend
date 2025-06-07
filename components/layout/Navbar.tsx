@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { User } from '@supabase/supabase-js';
-import { Search, Menu, X, MessageSquare, Bell, User as UserIcon } from 'lucide-react';
+import { Search, Menu, X, MessageSquare, Bell, User as UserIcon, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -87,13 +87,19 @@ export default function Navbar() {
             <Link href="/threads">
               <Button variant="ghost">Threads</Button>
             </Link>
+            <Link href="/marketplace">
+              <Button variant="ghost" className="flex items-center gap-2">
+                <ShoppingBag className="h-4 w-4" />
+                Marketplace
+              </Button>
+            </Link>
           </div>
 
           {/* User menu for desktop */}
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <>
-                <Button variant="ghost\" size="icon\" asChild>
+                <Button variant="ghost" size="icon" asChild>
                   <Link href="/notifications">
                     <Bell className="h-5 w-5" />
                   </Link>
@@ -112,6 +118,12 @@ export default function Navbar() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link href="/profile">Profile</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/marketplace/my-listings">My Listings</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/marketplace/favorites">Favorites</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link href="/settings">Settings</Link>
@@ -182,6 +194,12 @@ export default function Navbar() {
                 <Link href="/threads">Threads</Link>
               </Button>
               <Button variant="ghost" className="w-full justify-start" asChild>
+                <Link href="/marketplace">
+                  <ShoppingBag className="mr-2 h-4 w-4" />
+                  Marketplace
+                </Link>
+              </Button>
+              <Button variant="ghost" className="w-full justify-start" asChild>
                 <Link href="/notifications">Notifications</Link>
               </Button>
             </div>
@@ -201,6 +219,12 @@ export default function Navbar() {
                   <div className="space-y-2">
                     <Button variant="ghost" className="w-full justify-start" asChild>
                       <Link href="/profile">Profile</Link>
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start" asChild>
+                      <Link href="/marketplace/my-listings">My Listings</Link>
+                    </Button>
+                    <Button variant="ghost" className="w-full justify-start" asChild>
+                      <Link href="/marketplace/favorites">Favorites</Link>
                     </Button>
                     <Button variant="ghost" className="w-full justify-start" asChild>
                       <Link href="/settings">Settings</Link>

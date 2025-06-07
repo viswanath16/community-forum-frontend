@@ -8,18 +8,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getCurrentUser } from '@/lib/auth';
-import { fetchListings } from '@/lib/api';
+import { fetchListings, fetchMarketplaceCategories } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
-import { Plus, Search, Tag, DollarSign } from 'lucide-react';
+import { Plus, Search, Filter, Heart, MapPin, DollarSign, Tag } from 'lucide-react';
 
 export default function MarketplacePage() {
   const router = useRouter();
   const [listings, setListings] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [location, setLocation] = useState('');
 
   useEffect(() => {
     const loadUser = async () => {
@@ -31,30 +37,73 @@ export default function MarketplacePage() {
       }
     };
 
-    const loadListings = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
-        const data = await fetchListings();
-        setListings(data);
+        
+        // Load categories and listings in parallel
+        const [listingsData, categoriesData] = await Promise.all([
+          fetchListings(),
+          fetchMarketplaceCategories()
+        ]);
+        
+        setListings(listingsData);
+        setCategories(categoriesData);
         setError(null);
       } catch (err) {
-        console.error('Error loading listings:', err);
-        setError('Failed to load marketplace listings. Please try again later.');
+        console.error('Error loading marketplace data:', err);
+        setError('Failed to load marketplace data. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
 
     loadUser();
-    loadListings();
+    loadData();
   }, []);
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
-    // Implement search functionality
+    
+    try {
+      setLoading(true);
+      const params = {
+        search: searchQuery || undefined,
+        category: selectedCategory || undefined,
+        minPrice: minPrice ? parseFloat(minPrice) : undefined,
+        maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+        location: location || undefined,
+      };
+      
+      const data = await fetchListings(params);
+      setListings(data);
+    } catch (err) {
+      console.error('Error searching listings:', err);
+      setError('Failed to search listings. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (loading) {
+  const clearFilters = async () => {
+    setSearchQuery('');
+    setSelectedCategory('');
+    setMinPrice('');
+    setMaxPrice('');
+    setLocation('');
+    
+    try {
+      setLoading(true);
+      const data = await fetchListings();
+      setListings(data);
+    } catch (err) {
+      console.error('Error loading listings:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading && listings.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
@@ -112,29 +161,84 @@ export default function MarketplacePage() {
           )}
         </div>
 
-        <div className="flex gap-4 mb-8">
-          <form onSubmit={handleSearch} className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search listings..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </form>
-          <Button variant="outline">
-            Filter
-          </Button>
-        </div>
+        {/* Search and Filters */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Search & Filter
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSearch} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Search listings..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Categories</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Input
+                  type="text"
+                  placeholder="Location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  type="number"
+                  placeholder="Min price"
+                  value={minPrice}
+                  onChange={(e) => setMinPrice(e.target.value)}
+                />
+                <Input
+                  type="number"
+                  placeholder="Max price"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                />
+              </div>
+              
+              <div className="flex gap-2">
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Searching...' : 'Search'}
+                </Button>
+                <Button type="button" variant="outline" onClick={clearFilters}>
+                  Clear Filters
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
 
         {listings.length === 0 ? (
           <Card className="p-8 text-center">
-            <CardTitle className="mb-2">No listings yet</CardTitle>
+            <CardTitle className="mb-2">No listings found</CardTitle>
             <CardDescription className="mb-6">
-              Be the first to create a listing in our marketplace.
+              {searchQuery || selectedCategory || minPrice || maxPrice || location
+                ? 'Try adjusting your search criteria or filters.'
+                : 'Be the first to create a listing in our marketplace.'}
             </CardDescription>
             {user ? (
               <Button asChild>
@@ -153,35 +257,57 @@ export default function MarketplacePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {listings.map((listing) => (
               <Link key={listing.id} href={`/marketplace/${listing.id}`}>
-                <Card className="hover:shadow-md transition-shadow h-full">
-                  <CardHeader>
+                <Card className="hover:shadow-md transition-shadow h-full group">
+                  <CardHeader className="pb-2">
                     {listing.images?.[0] && (
                       <div className="aspect-video relative rounded-lg overflow-hidden mb-4">
                         <img
                           src={listing.images[0]}
                           alt={listing.title}
-                          className="object-cover w-full h-full"
+                          className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-200"
                         />
+                        {listing.status === 'sold' && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <Badge variant="destructive" className="text-lg">SOLD</Badge>
+                          </div>
+                        )}
                       </div>
                     )}
-                    <CardTitle className="line-clamp-1">{listing.title}</CardTitle>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="secondary">
-                        <Tag className="mr-1 h-3 w-3" />
-                        {listing.category}
-                      </Badge>
-                      <Badge variant="outline">
+                    <CardTitle className="line-clamp-2 text-lg">{listing.title}</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <Badge variant="default" className="font-bold">
                         <DollarSign className="mr-1 h-3 w-3" />
-                        {listing.price}
+                        ${listing.price}
                       </Badge>
+                      {listing.condition && (
+                        <Badge variant="outline" className="text-xs">
+                          {listing.condition}
+                        </Badge>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent>
                     <CardDescription className="line-clamp-2 mb-4">
                       {listing.description}
                     </CardDescription>
+                    
+                    <div className="flex flex-wrap gap-1 mb-4">
+                      <Badge variant="secondary" className="text-xs">
+                        <Tag className="mr-1 h-3 w-3" />
+                        {listing.category}
+                      </Badge>
+                      {listing.tags?.slice(0, 2).map((tag, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                    
                     <div className="flex justify-between items-center text-sm text-muted-foreground">
-                      <span>{listing.location}</span>
+                      <div className="flex items-center">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        <span className="truncate">{listing.location}</span>
+                      </div>
                       <span>
                         {formatDistanceToNow(new Date(listing.createdAt), { addSuffix: true })}
                       </span>

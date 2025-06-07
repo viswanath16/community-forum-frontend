@@ -5,6 +5,7 @@ export interface User {
   avatarUrl?: string;
   createdAt: string;
   role?: string;
+  rating?: number;
 }
 
 export interface Category {
@@ -71,11 +72,25 @@ export interface MarketplaceListing {
   id: string;
   title: string;
   description: string;
-  price: string;
+  price: number;
   category: string;
   location: string;
+  condition: 'new' | 'like-new' | 'good' | 'fair' | 'poor';
+  status: 'active' | 'sold' | 'inactive';
   images?: string[];
+  tags?: string[];
   seller: User;
   createdAt: string;
   updatedAt: string;
+  isFavorited?: boolean;
+  viewCount?: number;
+}
+
+export interface MarketplaceCategory {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  parentId?: string;
+  subcategories?: MarketplaceCategory[];
 }

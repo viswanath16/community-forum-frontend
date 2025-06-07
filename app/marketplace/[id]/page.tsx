@@ -9,10 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
 import { getCurrentUser } from '@/lib/auth';
-import { fetchListing } from '@/lib/api';
+import { fetchListing, contactSeller, favoriteListingToggle, reportListing } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
-import { ChevronLeft, Tag, DollarSign, MapPin, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Tag, DollarSign, MapPin, AlertCircle, Heart, Flag, MessageCircle, Star } from 'lucide-react';
 
 export default function ListingPage() {
   const params = useParams();
@@ -21,6 +22,10 @@ export default function ListingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
+  const [contactMessage, setContactMessage] = useState('');
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -39,6 +44,7 @@ export default function ListingPage() {
         setLoading(true);
         const data = await fetchListing(params.id);
         setListing(data);
+        setIsFavorited(data.isFavorited || false);
         setError(null);
       } catch (err) {
         console.error('Error loading listing:', err);
@@ -52,12 +58,61 @@ export default function ListingPage() {
     loadListing();
   }, [params.id]);
 
-  const handleContact = () => {
+  const handleContactSeller = async (e) => {
+    e.preventDefault();
+    
     if (!user) {
       router.push('/login');
       return;
     }
-    // Implement contact functionality
+    
+    if (!contactMessage.trim()) return;
+    
+    try {
+      setSubmitting(true);
+      await contactSeller(listing.id, contactMessage);
+      setContactMessage('');
+      setShowContactForm(false);
+      // Show success message
+      alert('Message sent to seller successfully!');
+    } catch (err) {
+      console.error('Error contacting seller:', err);
+      alert('Failed to send message. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleFavoriteToggle = async () => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    
+    try {
+      await favoriteListingToggle(listing.id);
+      setIsFavorited(!isFavorited);
+    } catch (err) {
+      console.error('Error toggling favorite:', err);
+    }
+  };
+
+  const handleReport = async () => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    
+    const reason = prompt('Please provide a reason for reporting this listing:');
+    if (!reason) return;
+    
+    try {
+      await reportListing(listing.id, reason);
+      alert('Listing reported successfully. Thank you for helping keep our marketplace safe.');
+    } catch (err) {
+      console.error('Error reporting listing:', err);
+      alert('Failed to report listing. Please try again.');
+    }
   };
 
   if (loading) {
@@ -130,6 +185,11 @@ export default function ListingPage() {
                   alt={listing.title}
                   className="object-cover w-full h-full"
                 />
+                {listing.status === 'sold' && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <Badge variant="destructive" className="text-2xl">SOLD</Badge>
+                  </div>
+                )}
               </div>
               {listing.images.length > 1 && (
                 <div className="grid grid-cols-4 gap-2">
@@ -149,16 +209,37 @@ export default function ListingPage() {
         </div>
 
         <div>
-          <h1 className="text-3xl font-bold mb-2">{listing.title}</h1>
+          <div className="flex justify-between items-start mb-4">
+            <h1 className="text-3xl font-bold">{listing.title}</h1>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleFavoriteToggle}
+                className={isFavorited ? 'text-red-500' : ''}
+              >
+                <Heart className={`h-4 w-4 ${isFavorited ? 'fill-current' : ''}`} />
+              </Button>
+              <Button variant="outline" size="icon" onClick={handleReport}>
+                <Flag className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          
           <div className="flex items-center space-x-2 mb-6">
+            <Badge variant="default" className="text-lg font-bold">
+              <DollarSign className="mr-1 h-4 w-4" />
+              ${listing.price}
+            </Badge>
             <Badge variant="secondary">
               <Tag className="mr-1 h-3 w-3" />
               {listing.category}
             </Badge>
-            <Badge>
-              <DollarSign className="mr-1 h-3 w-3" />
-              {listing.price}
-            </Badge>
+            {listing.condition && (
+              <Badge variant="outline">
+                {listing.condition}
+              </Badge>
+            )}
             {listing.location && (
               <Badge variant="outline">
                 <MapPin className="mr-1 h-3 w-3" />
@@ -168,32 +249,58 @@ export default function ListingPage() {
           </div>
 
           <div className="prose dark:prose-invert max-w-none mb-8">
-            {listing.description}
+            <p>{listing.description}</p>
           </div>
+
+          {listing.tags && listing.tags.length > 0 && (
+            <div className="mb-6">
+              <h3 className="font-semibold mb-2">Tags</h3>
+              <div className="flex flex-wrap gap-2">
+                {listing.tags.map((tag, index) => (
+                  <Badge key={index} variant="outline">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
 
           <Card className="mb-6">
             <CardHeader>
               <CardTitle className="text-lg">Seller Information</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-4 mb-4">
                 <Avatar className="h-12 w-12">
-                  <AvatarImage src={listing.seller.avatarUrl} alt={listing.seller.username} />
+                  <AvatarImage src={listing.seller?.avatarUrl} alt={listing.seller?.username} />
                   <AvatarFallback>
-                    {listing.seller.username?.charAt(0) || listing.seller.email?.charAt(0) || 'S'}
+                    {listing.seller?.username?.charAt(0) || listing.seller?.email?.charAt(0) || 'S'}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium">{listing.seller.username || listing.seller.email}</p>
+                  <p className="font-medium">{listing.seller?.username || listing.seller?.email}</p>
                   <p className="text-sm text-muted-foreground">
-                    Member since {formatDistanceToNow(new Date(listing.seller.createdAt), { addSuffix: true })}
+                    Member since {formatDistanceToNow(new Date(listing.seller?.createdAt), { addSuffix: true })}
                   </p>
+                  {listing.seller?.rating && (
+                    <div className="flex items-center mt-1">
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <span className="text-sm ml-1">{listing.seller.rating}/5</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {listing.seller.id === user?.id ? (
+          {listing.status === 'sold' ? (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                This item has been sold and is no longer available.
+              </AlertDescription>
+            </Alert>
+          ) : listing.seller?.id === user?.id ? (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
@@ -201,9 +308,56 @@ export default function ListingPage() {
               </AlertDescription>
             </Alert>
           ) : (
-            <Button className="w-full" size="lg" onClick={handleContact}>
-              Contact Seller
-            </Button>
+            <div className="space-y-4">
+              {!showContactForm ? (
+                <Button 
+                  className="w-full" 
+                  size="lg" 
+                  onClick={() => {
+                    if (!user) {
+                      router.push('/login');
+                      return;
+                    }
+                    setShowContactForm(true);
+                  }}
+                >
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  Contact Seller
+                </Button>
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Contact Seller</CardTitle>
+                    <CardDescription>
+                      Send a message to the seller about this listing
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleContactSeller} className="space-y-4">
+                      <Textarea
+                        value={contactMessage}
+                        onChange={(e) => setContactMessage(e.target.value)}
+                        placeholder="Hi, I'm interested in your listing..."
+                        className="min-h-24"
+                        required
+                      />
+                      <div className="flex gap-2">
+                        <Button type="submit" disabled={submitting || !contactMessage.trim()}>
+                          {submitting ? 'Sending...' : 'Send Message'}
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => setShowContactForm(false)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           )}
         </div>
       </div>

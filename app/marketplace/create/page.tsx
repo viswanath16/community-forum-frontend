@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { z } from 'zod';
@@ -13,53 +13,129 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { createListing } from '@/lib/api';
-import { ChevronLeft, AlertCircle, ImagePlus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { createListing, fetchMarketplaceCategories } from '@/lib/api';
+import { getCurrentUser } from '@/lib/auth';
+import { ChevronLeft, AlertCircle, ImagePlus, X } from 'lucide-react';
 
 const listingSchema = z.object({
   title: z.string().min(5, { message: 'Title must be at least 5 characters' }).max(100, { message: 'Title must be less than 100 characters' }),
   description: z.string().min(20, { message: 'Description must be at least 20 characters' }),
-  price: z.string().min(1, { message: 'Please enter a price' }),
+  price: z.number().min(0.01, { message: 'Price must be greater than 0' }),
   category: z.string().min(1, { message: 'Please select a category' }),
   location: z.string().min(1, { message: 'Please enter a location' }),
+  condition: z.enum(['new', 'like-new', 'good', 'fair', 'poor']),
+  tags: z.array(z.string()).optional(),
   images: z.array(z.string()).optional(),
 });
 
 type ListingFormValues = z.infer<typeof listingSchema>;
 
-const categories = [
-  { id: 'electronics', name: 'Electronics' },
-  { id: 'furniture', name: 'Furniture' },
-  { id: 'clothing', name: 'Clothing' },
-  { id: 'books', name: 'Books' },
-  { id: 'sports', name: 'Sports & Outdoors' },
-  { id: 'vehicles', name: 'Vehicles' },
-  { id: 'other', name: 'Other' },
+const conditions = [
+  { value: 'new', label: 'New' },
+  { value: 'like-new', label: 'Like New' },
+  { value: 'good', label: 'Good' },
+  { value: 'fair', label: 'Fair' },
+  { value: 'poor', label: 'Poor' },
 ];
 
 export default function CreateListingPage() {
   const router = useRouter();
-  const [error, setError] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [user, setUser] = useState(null);
+  const [tagInput, setTagInput] = useState('');
+  const [tags, setTags] = useState([]);
 
   const form = useForm<ListingFormValues>({
     resolver: zodResolver(listingSchema),
     defaultValues: {
       title: '',
       description: '',
-      price: '',
+      price: 0,
       category: '',
       location: '',
+      condition: 'good',
+      tags: [],
       images: [],
     },
   });
 
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        
+        if (!currentUser) {
+          router.push('/login');
+          return;
+        }
+        
+        setUser(currentUser);
+      } catch (err) {
+        console.error('Error loading user:', err);
+        router.push('/login');
+      }
+    };
+
+    const loadCategories = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchMarketplaceCategories();
+        setCategories(data);
+        setError(null);
+      } catch (err) {
+        console.error('Error loading categories:', err);
+        setError('Failed to load categories. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUser();
+    loadCategories();
+  }, [router]);
+
+  const addTag = () => {
+    if (tagInput.trim() && !tags.includes(tagInput.trim()) && tags.length < 10) {
+      const newTags = [...tags, tagInput.trim()];
+      setTags(newTags);
+      form.setValue('tags', newTags);
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (tagToRemove) => {
+    const newTags = tags.filter(tag => tag !== tagToRemove);
+    setTags(newTags);
+    form.setValue('tags', newTags);
+  };
+
+  const handleTagKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTag();
+    }
+  };
+
   const onSubmit = async (data: ListingFormValues) => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    
     try {
       setSubmitting(true);
       setError(null);
       
-      const listing = await createListing(data);
+      const listingData = {
+        ...data,
+        tags: tags,
+      };
+      
+      const listing = await createListing(listingData);
       router.push(`/marketplace/${listing.id}`);
     } catch (err: any) {
       console.error('Error creating listing:', err);
@@ -67,6 +143,16 @@ export default function CreateListingPage() {
       setSubmitting(false);
     }
   };
+
+  if (!user || loading) {
+    return (
+      <div className="container max-w-2xl mx-auto px-4 py-8">
+        <div className="text-center py-12">
+          <p className="mb-4 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container max-w-2xl mx-auto px-4 py-8">
@@ -86,7 +172,7 @@ export default function CreateListingPage() {
         </CardHeader>
         <CardContent>
           {error && (
-            <Alert variant="destructive\" className="mb-4">
+            <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
@@ -112,71 +198,107 @@ export default function CreateListingPage() {
                 )}
               />
               
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={submitting}
-                    >
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        disabled={submitting}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="condition"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Condition</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        disabled={submitting}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select condition" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {conditions.map((condition) => (
+                            <SelectItem key={condition.value} value={condition.value}>
+                              {condition.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Price ($)</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a category" />
-                        </SelectTrigger>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          {...field}
+                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          disabled={submitting}
+                        />
                       </FormControl>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="text"
-                        placeholder="Enter price"
-                        {...field}
-                        disabled={submitting}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Where is the item located?"
-                        {...field}
-                        disabled={submitting}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="City, State"
+                          {...field}
+                          disabled={submitting}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               
               <FormField
                 control={form.control}
@@ -198,7 +320,46 @@ export default function CreateListingPage() {
               />
               
               <div>
-                <FormLabel>Images</FormLabel>
+                <FormLabel>Tags (Optional)</FormLabel>
+                <div className="mt-2 space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyPress={handleTagKeyPress}
+                      placeholder="Add tags to help buyers find your item"
+                      disabled={submitting || tags.length >= 10}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addTag}
+                      disabled={!tagInput.trim() || tags.includes(tagInput.trim()) || tags.length >= 10}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  {tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map((tag, index) => (
+                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                          {tag}
+                          <X
+                            className="h-3 w-3 cursor-pointer"
+                            onClick={() => removeTag(tag)}
+                          />
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-sm text-muted-foreground">
+                    {tags.length}/10 tags added
+                  </p>
+                </div>
+              </div>
+              
+              <div>
+                <FormLabel>Images (Optional)</FormLabel>
                 <div className="mt-2 grid grid-cols-2 gap-4">
                   <Button
                     type="button"
@@ -206,10 +367,15 @@ export default function CreateListingPage() {
                     className="h-32 w-full"
                     disabled={submitting}
                   >
-                    <ImagePlus className="h-8 w-8 mb-2" />
-                    <span>Add Image</span>
+                    <div className="flex flex-col items-center">
+                      <ImagePlus className="h-8 w-8 mb-2" />
+                      <span>Add Image</span>
+                    </div>
                   </Button>
                 </div>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Image upload functionality will be available soon.
+                </p>
               </div>
               
               <div className="flex justify-end">
