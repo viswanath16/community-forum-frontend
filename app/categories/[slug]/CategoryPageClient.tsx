@@ -1,10 +1,11 @@
+// app/categories/[slug]/CategoryPageClient.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { fetchThreads } from '@/lib/api';
-import { Category, Thread } from '@/types';
+import { Category, Thread, User } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -24,7 +25,7 @@ export default function CategoryPageClient({ initialCategory, initialThreads, er
   const [category] = useState<Category | null>(initialCategory);
   const [threads, setThreads] = useState<Thread[]>(initialThreads);
   const [error, setError] = useState<string | null>(initialError || null);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null); // Fixed: Proper typing
 
   useEffect(() => {
     const loadUser = async () => {

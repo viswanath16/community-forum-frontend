@@ -14,14 +14,15 @@ import { getCurrentUser } from '@/lib/auth';
 import { fetchListing, contactSeller, favoriteListingToggle, reportListing } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
 import { ChevronLeft, Tag, DollarSign, MapPin, AlertCircle, Heart, Flag, MessageCircle, Star } from 'lucide-react';
+import { User, MarketplaceListing } from '@/types';
 
 export default function ListingPage() {
   const params = useParams();
   const router = useRouter();
-  const [listing, setListing] = useState(null);
+  const [listing, setListing] = useState<MarketplaceListing | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [user, setUser] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null); // Fixed: Proper typing
   const [contactMessage, setContactMessage] = useState('');
   const [showContactForm, setShowContactForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -42,7 +43,7 @@ export default function ListingPage() {
       
       try {
         setLoading(true);
-        const data = await fetchListing(params.id);
+        const data = await fetchListing(params.id as string);
         setListing(data);
         setIsFavorited(data.isFavorited || false);
         setError(null);
@@ -58,7 +59,7 @@ export default function ListingPage() {
     loadListing();
   }, [params.id]);
 
-  const handleContactSeller = async (e) => {
+  const handleContactSeller = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!user) {
@@ -66,7 +67,7 @@ export default function ListingPage() {
       return;
     }
     
-    if (!contactMessage.trim()) return;
+    if (!contactMessage.trim() || !listing) return;
     
     try {
       setSubmitting(true);
@@ -89,6 +90,8 @@ export default function ListingPage() {
       return;
     }
     
+    if (!listing) return;
+    
     try {
       await favoriteListingToggle(listing.id);
       setIsFavorited(!isFavorited);
@@ -102,6 +105,8 @@ export default function ListingPage() {
       router.push('/login');
       return;
     }
+    
+    if (!listing) return;
     
     const reason = prompt('Please provide a reason for reporting this listing:');
     if (!reason) return;
@@ -177,7 +182,7 @@ export default function ListingPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div>
-          {listing.images?.length > 0 && (
+          {listing.images && listing.images.length > 0 && (
             <>
               <div className="aspect-video relative rounded-lg overflow-hidden mb-4">
                 <img
@@ -187,7 +192,7 @@ export default function ListingPage() {
                 />
                 {listing.status === 'sold' && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <Badge variant="destructive\" className="text-2xl">SOLD</Badge>
+                    <Badge variant="destructive" className="text-2xl">SOLD</Badge>
                   </div>
                 )}
               </div>
@@ -280,7 +285,7 @@ export default function ListingPage() {
                 <div>
                   <p className="font-medium">{listing.seller?.username || listing.seller?.email}</p>
                   <p className="text-sm text-muted-foreground">
-                    Member since {formatDistanceToNow(new Date(listing.seller?.createdAt), { addSuffix: true })}
+                    Member since {listing.seller?.createdAt ? formatDistanceToNow(new Date(listing.seller.createdAt), { addSuffix: true }) : 'recently'}
                   </p>
                   {listing.seller?.rating && (
                     <div className="flex items-center mt-1">

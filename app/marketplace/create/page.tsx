@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { createListing, fetchMarketplaceCategories } from '@/lib/api';
 import { getCurrentUser } from '@/lib/auth';
 import { ChevronLeft, AlertCircle, ImagePlus, X } from 'lucide-react';
+import { User, MarketplaceCategory } from '@/types';
 
 const listingSchema = z.object({
   title: z.string().min(5, { message: 'Title must be at least 5 characters' }).max(100, { message: 'Title must be less than 100 characters' }),
@@ -41,13 +42,13 @@ const conditions = [
 
 export default function CreateListingPage() {
   const router = useRouter();
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState<MarketplaceCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
-  const [user, setUser] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null); // Fixed: Proper typing
   const [tagInput, setTagInput] = useState('');
-  const [tags, setTags] = useState([]);
+  const [tags, setTags] = useState<string[]>([]);
 
   const form = useForm<ListingFormValues>({
     resolver: zodResolver(listingSchema),
@@ -107,13 +108,13 @@ export default function CreateListingPage() {
     }
   };
 
-  const removeTag = (tagToRemove) => {
+  const removeTag = (tagToRemove: string) => {
     const newTags = tags.filter(tag => tag !== tagToRemove);
     setTags(newTags);
     form.setValue('tags', newTags);
   };
 
-  const handleTagKeyPress = (e) => {
+  const handleTagKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       addTag();
@@ -172,7 +173,7 @@ export default function CreateListingPage() {
         </CardHeader>
         <CardContent>
           {error && (
-            <Alert variant="destructive\" className="mb-4">
+            <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>

@@ -13,14 +13,15 @@ import { getCurrentUser } from '@/lib/auth';
 import { fetchListings, fetchMarketplaceCategories } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
 import { Plus, Search, Filter, Heart, MapPin, DollarSign, Tag } from 'lucide-react';
+import { User, MarketplaceListing, MarketplaceCategory } from '@/types';
 
 export default function MarketplacePage() {
   const router = useRouter();
-  const [listings, setListings] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [listings, setListings] = useState<MarketplaceListing[]>([]);
+  const [categories, setCategories] = useState<MarketplaceCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [user, setUser] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [minPrice, setMinPrice] = useState('');
@@ -62,7 +63,7 @@ export default function MarketplacePage() {
     loadData();
   }, []);
 
-  const handleSearch = async (e) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
@@ -268,7 +269,7 @@ export default function MarketplacePage() {
                         />
                         {listing.status === 'sold' && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                            <Badge variant="destructive\" className="text-lg">SOLD</Badge>
+                            <Badge variant="destructive" className="text-lg">SOLD</Badge>
                           </div>
                         )}
                       </div>
