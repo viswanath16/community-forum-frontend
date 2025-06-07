@@ -21,7 +21,11 @@ export default function RecentThreads() {
       try {
         setLoading(true);
         const data = await fetchThreads();
-        setThreads(data.slice(0, 5)); // Limit to 5 recent threads
+        console.log('Threads loaded:', data); // Debug log
+        
+        // Ensure we have an array and limit to 5 recent threads
+        const threadsArray = Array.isArray(data) ? data : [];
+        setThreads(threadsArray.slice(0, 5));
         setError(null);
       } catch (err) {
         console.error('Error loading threads:', err);
@@ -64,7 +68,21 @@ export default function RecentThreads() {
   }
 
   if (error) {
-    return <div className="text-destructive text-center p-6">{error}</div>;
+    return (
+      <div className="text-center p-6">
+        <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+        <p className="text-muted-foreground">{error}</p>
+      </div>
+    );
+  }
+
+  if (threads.length === 0) {
+    return (
+      <div className="text-center p-6">
+        <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+        <p className="text-muted-foreground">No recent discussions available.</p>
+      </div>
+    );
   }
 
   return (
@@ -75,15 +93,15 @@ export default function RecentThreads() {
             <CardHeader className="pb-2">
               <div className="flex items-center space-x-2 mb-2">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={thread.author.avatarUrl || ''} alt={thread.author.username || ''} />
+                  <AvatarImage src={thread.author?.avatarUrl || ''} alt={thread.author?.username || ''} />
                   <AvatarFallback>
-                    {thread.author.username?.charAt(0) || thread.author.email?.charAt(0) || 'U'}
+                    {thread.author?.username?.charAt(0) || thread.author?.email?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="text-sm font-medium">{thread.author.username || thread.author.email}</p>
+                  <p className="text-sm font-medium">{thread.author?.username || thread.author?.email || 'Anonymous'}</p>
                   <p className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(thread.createdAt), { addSuffix: true })}
+                    {thread.createdAt ? formatDistanceToNow(new Date(thread.createdAt), { addSuffix: true }) : 'Recently'}
                   </p>
                 </div>
               </div>
@@ -94,15 +112,15 @@ export default function RecentThreads() {
             </CardHeader>
             <CardContent>
               <CardDescription className="line-clamp-2 mb-4">
-                {thread.content.replace(/<[^>]*>/g, '')}
+                {thread.content ? thread.content.replace(/<[^>]*>/g, '') : 'No content available'}
               </CardDescription>
               <div className="flex justify-between items-center">
                 <Badge variant="outline">
-                  {thread.postCount} {thread.postCount === 1 ? 'reply' : 'replies'}
+                  {thread.postCount || 0} {(thread.postCount || 0) === 1 ? 'reply' : 'replies'}
                 </Badge>
                 <div className="flex items-center text-muted-foreground text-sm">
                   <MessageSquare className="h-4 w-4 mr-1" />
-                  {thread.viewCount} views
+                  {thread.viewCount || 0} views
                 </div>
               </div>
             </CardContent>

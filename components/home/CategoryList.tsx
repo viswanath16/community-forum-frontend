@@ -7,7 +7,7 @@ import { fetchCategories } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, MessageSquare } from 'lucide-react';
 
 export default function CategoryList() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -19,7 +19,11 @@ export default function CategoryList() {
       try {
         setLoading(true);
         const data = await fetchCategories();
-        setCategories(data.slice(0, 6)); // Limit to 6 categories for homepage
+        console.log('Categories loaded:', data); // Debug log
+        
+        // Ensure we have an array and limit to 6 categories for homepage
+        const categoriesArray = Array.isArray(data) ? data : [];
+        setCategories(categoriesArray.slice(0, 6));
         setError(null);
       } catch (err) {
         console.error('Error loading categories:', err);
@@ -54,7 +58,21 @@ export default function CategoryList() {
   }
 
   if (error) {
-    return <div className="text-destructive text-center p-6">{error}</div>;
+    return (
+      <div className="text-center p-6">
+        <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+        <p className="text-muted-foreground">{error}</p>
+      </div>
+    );
+  }
+
+  if (categories.length === 0) {
+    return (
+      <div className="text-center p-6">
+        <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+        <p className="text-muted-foreground">No categories available at the moment.</p>
+      </div>
+    );
   }
 
   return (
@@ -71,7 +89,7 @@ export default function CategoryList() {
             <CardContent>
               <div className="flex justify-between items-center mt-2">
                 <Badge variant="secondary">
-                  {category.threadCount} {category.threadCount === 1 ? 'thread' : 'threads'}
+                  {category.threadCount || 0} {(category.threadCount || 0) === 1 ? 'thread' : 'threads'}
                 </Badge>
                 <ChevronRight className="h-5 w-5 text-muted-foreground" />
               </div>

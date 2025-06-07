@@ -22,7 +22,11 @@ api.interceptors.request.use((config) => {
 export const fetchCategories = async () => {
   try {
     const response = await api.get('/categories');
-    return response.data?.categories || [];
+    // Handle different possible response structures
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data?.categories || response.data?.data || [];
   } catch (error) {
     console.error('Error fetching categories:', error);
     return [];
@@ -30,8 +34,13 @@ export const fetchCategories = async () => {
 };
 
 export const fetchCategory = async (slug: string) => {
-  const response = await api.get(`/categories/${slug}`);
-  return response.data;
+  try {
+    const response = await api.get(`/categories/${slug}`);
+    return response.data?.category || response.data;
+  } catch (error) {
+    console.error('Error fetching category:', error);
+    throw error;
+  }
 };
 
 // Threads API
@@ -39,7 +48,11 @@ export const fetchThreads = async (categoryId?: string) => {
   try {
     const url = categoryId ? `/threads?categoryId=${categoryId}` : '/threads';
     const response = await api.get(url);
-    return response.data?.threads || [];
+    // Handle different possible response structures
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data?.threads || response.data?.data || [];
   } catch (error) {
     console.error('Error fetching threads:', error);
     return [];
@@ -47,8 +60,13 @@ export const fetchThreads = async (categoryId?: string) => {
 };
 
 export const fetchThread = async (id: string) => {
-  const response = await api.get(`/threads/${id}`);
-  return response.data;
+  try {
+    const response = await api.get(`/threads/${id}`);
+    return response.data?.thread || response.data;
+  } catch (error) {
+    console.error('Error fetching thread:', error);
+    throw error;
+  }
 };
 
 export const createThread = async (data: {
@@ -56,39 +74,73 @@ export const createThread = async (data: {
   content: string;
   categoryId: string;
 }) => {
-  const response = await api.post('/threads', data);
-  return response.data;
+  try {
+    const response = await api.post('/threads', data);
+    return response.data?.thread || response.data;
+  } catch (error) {
+    console.error('Error creating thread:', error);
+    throw error;
+  }
 };
 
 // Posts API
 export const fetchPosts = async (threadId: string) => {
-  const response = await api.get(`/posts?threadId=${threadId}`);
-  return response.data?.posts || [];
+  try {
+    const response = await api.get(`/threads/${threadId}/posts`);
+    // Handle different possible response structures
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data?.posts || response.data?.data || [];
+  } catch (error) {
+    console.error('Error fetching posts:', error);
+    return [];
+  }
 };
 
 export const createPost = async (data: {
   content: string;
   threadId: string;
 }) => {
-  const response = await api.post('/posts', data);
-  return response.data;
+  try {
+    const response = await api.post('/posts', data);
+    return response.data?.post || response.data;
+  } catch (error) {
+    console.error('Error creating post:', error);
+    throw error;
+  }
 };
 
 // Users API
 export const fetchUserProfile = async (userId: string) => {
-  const response = await api.get(`/users/${userId}`);
-  return response.data;
+  try {
+    const response = await api.get(`/users/${userId}`);
+    return response.data?.user || response.data;
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    throw error;
+  }
 };
 
 export const updateUserProfile = async (userId: string, data: any) => {
-  const response = await api.put(`/users/${userId}`, data);
-  return response.data;
+  try {
+    const response = await api.put(`/users/${userId}`, data);
+    return response.data?.user || response.data;
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    throw error;
+  }
 };
 
 // Search API
 export const searchContent = async (query: string) => {
-  const response = await api.get(`/search?q=${encodeURIComponent(query)}`);
-  return response.data;
+  try {
+    const response = await api.get(`/search?q=${encodeURIComponent(query)}`);
+    return response.data?.results || response.data || [];
+  } catch (error) {
+    console.error('Error searching content:', error);
+    return [];
+  }
 };
 
 // Marketplace API endpoints
@@ -111,9 +163,14 @@ export const fetchListings = async (params?: {
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
 
-    const url = `/listings${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const url = `/marketplace/listings${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     const response = await api.get(url);
-    return response.data?.listings || [];
+    
+    // Handle different possible response structures
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data?.listings || response.data?.data || [];
   } catch (error) {
     console.error('Error fetching listings:', error);
     return [];
@@ -121,8 +178,13 @@ export const fetchListings = async (params?: {
 };
 
 export const fetchListing = async (id: string) => {
-  const response = await api.get(`/marketplace/listings/${id}`);
-  return response.data;
+  try {
+    const response = await api.get(`/marketplace/listings/${id}`);
+    return response.data?.listing || response.data;
+  } catch (error) {
+    console.error('Error fetching listing:', error);
+    throw error;
+  }
 };
 
 export const createListing = async (data: {
@@ -135,8 +197,13 @@ export const createListing = async (data: {
   condition?: 'new' | 'like-new' | 'good' | 'fair' | 'poor';
   tags?: string[];
 }) => {
-  const response = await api.post('/marketplace/listings', data);
-  return response.data;
+  try {
+    const response = await api.post('/marketplace/listings', data);
+    return response.data?.listing || response.data;
+  } catch (error) {
+    console.error('Error creating listing:', error);
+    throw error;
+  }
 };
 
 export const updateListing = async (id: string, data: {
@@ -150,47 +217,92 @@ export const updateListing = async (id: string, data: {
   tags?: string[];
   status?: 'active' | 'sold' | 'inactive';
 }) => {
-  const response = await api.put(`/marketplace/listings/${id}`, data);
-  return response.data;
+  try {
+    const response = await api.put(`/marketplace/listings/${id}`, data);
+    return response.data?.listing || response.data;
+  } catch (error) {
+    console.error('Error updating listing:', error);
+    throw error;
+  }
 };
 
 export const deleteListing = async (id: string) => {
-  const response = await api.delete(`/marketplace/listings/${id}`);
-  return response.data;
+  try {
+    const response = await api.delete(`/marketplace/listings/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting listing:', error);
+    throw error;
+  }
 };
 
 export const fetchMyListings = async () => {
-  const response = await api.get('/marketplace/my-listings');
-  return response.data?.listings || [];
+  try {
+    const response = await api.get('/marketplace/my-listings');
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data?.listings || response.data?.data || [];
+  } catch (error) {
+    console.error('Error fetching my listings:', error);
+    return [];
+  }
 };
 
 export const markListingAsSold = async (id: string) => {
-  const response = await api.patch(`/marketplace/listings/${id}/sold`);
-  return response.data;
+  try {
+    const response = await api.patch(`/marketplace/listings/${id}/sold`);
+    return response.data?.listing || response.data;
+  } catch (error) {
+    console.error('Error marking listing as sold:', error);
+    throw error;
+  }
 };
 
 export const favoriteListingToggle = async (id: string) => {
-  const response = await api.post(`/marketplace/listings/${id}/favorite`);
-  return response.data;
+  try {
+    const response = await api.post(`/marketplace/listings/${id}/favorite`);
+    return response.data;
+  } catch (error) {
+    console.error('Error toggling favorite:', error);
+    throw error;
+  }
 };
 
 export const fetchFavoriteListings = async () => {
-  const response = await api.get('/marketplace/favorites');
-  return response.data?.listings || [];
+  try {
+    const response = await api.get('/marketplace/favorites');
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data?.listings || response.data?.data || [];
+  } catch (error) {
+    console.error('Error fetching favorite listings:', error);
+    return [];
+  }
 };
 
 export const reportListing = async (id: string, reason: string, description?: string) => {
-  const response = await api.post(`/marketplace/listings/${id}/report`, {
-    reason,
-    description
-  });
-  return response.data;
+  try {
+    const response = await api.post(`/marketplace/listings/${id}/report`, {
+      reason,
+      description
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error reporting listing:', error);
+    throw error;
+  }
 };
 
 export const fetchMarketplaceCategories = async () => {
   try {
     const response = await api.get('/marketplace/categories');
-    return response.data?.categories || [];
+    // Handle different possible response structures
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data?.categories || response.data?.data || [];
   } catch (error) {
     console.error('Error fetching marketplace categories:', error);
     return [];
@@ -198,10 +310,15 @@ export const fetchMarketplaceCategories = async () => {
 };
 
 export const contactSeller = async (listingId: string, message: string) => {
-  const response = await api.post(`/marketplace/listings/${listingId}/contact`, {
-    message
-  });
-  return response.data;
+  try {
+    const response = await api.post(`/marketplace/listings/${listingId}/contact`, {
+      message
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error contacting seller:', error);
+    throw error;
+  }
 };
 
 export default api;
