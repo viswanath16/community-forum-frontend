@@ -99,7 +99,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <>
-                <Button variant="ghost" size="icon" asChild>
+                <Button variant="ghost\" size="icon\" asChild>
                   <Link href="/notifications">
                     <Bell className="h-5 w-5" />
                   </Link>
