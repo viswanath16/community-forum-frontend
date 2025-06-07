@@ -1,19 +1,17 @@
-// app/threads/[id]/page.tsx (hybrid approach)
 import { Metadata } from 'next';
 import { fetchThread, fetchPosts, fetchThreads } from '@/lib/api';
+import { Thread } from '@/types';
 import ThreadPageClient from './ThreadPageClient';
-
-export const dynamicParams = true; // Allow dynamic params not in generateStaticParams
 
 export async function generateStaticParams() {
   try {
-    // Only pre-generate popular or recent threads
+    // Fetch all threads to generate static params
     const threads = await fetchThreads();
     
-    // Pre-generate only the first 10 threads (or popular ones)
+    // Only pre-generate the first 10 threads (or popular ones)
     const threadsToPreGenerate = threads.slice(0, 10);
     
-    return threadsToPreGenerate.map((thread) => ({
+    return threadsToPreGenerate.map((thread: Thread) => ({
       id: thread.id,
     }));
   } catch (error) {
