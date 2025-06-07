@@ -17,6 +17,16 @@ import { getCurrentUser } from '@/lib/auth';
 import { formatDistanceToNow } from 'date-fns';
 import { ChevronLeft, MessageSquare, AlertCircle, PinIcon, LockIcon } from 'lucide-react';
 
+export async function generateStaticParams() {
+  try {
+    // Return empty array to allow dynamic generation
+    return [];
+  } catch (error) {
+    console.error('Error generating static params:', error);
+    return [];
+  }
+}
+
 export default function ThreadPage() {
   const params = useParams();
   const router = useRouter();
@@ -274,7 +284,7 @@ export default function ThreadPage() {
             ) : (
               <form onSubmit={handleSubmitPost}>
                 {error && (
-                  <Alert variant="destructive\" className="mb-4">
+                  <Alert variant="destructive" className="mb-4">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
