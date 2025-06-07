@@ -22,7 +22,7 @@ export default function MarketplacePage() {
   const [error, setError] = useState(null);
   const [user, setUser] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [location, setLocation] = useState('');
@@ -69,7 +69,7 @@ export default function MarketplacePage() {
       setLoading(true);
       const params = {
         search: searchQuery || undefined,
-        category: selectedCategory || undefined,
+        category: selectedCategory === 'all' ? undefined : selectedCategory,
         minPrice: minPrice ? parseFloat(minPrice) : undefined,
         maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
         location: location || undefined,
@@ -87,7 +87,7 @@ export default function MarketplacePage() {
 
   const clearFilters = async () => {
     setSearchQuery('');
-    setSelectedCategory('');
+    setSelectedCategory('all');
     setMinPrice('');
     setMaxPrice('');
     setLocation('');
@@ -188,7 +188,7 @@ export default function MarketplacePage() {
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Categories</SelectItem>
+                    <SelectItem value="all">All Categories</SelectItem>
                     {categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
@@ -236,7 +236,7 @@ export default function MarketplacePage() {
           <Card className="p-8 text-center">
             <CardTitle className="mb-2">No listings found</CardTitle>
             <CardDescription className="mb-6">
-              {searchQuery || selectedCategory || minPrice || maxPrice || location
+              {searchQuery || selectedCategory !== 'all' || minPrice || maxPrice || location
                 ? 'Try adjusting your search criteria or filters.'
                 : 'Be the first to create a listing in our marketplace.'}
             </CardDescription>
@@ -268,7 +268,7 @@ export default function MarketplacePage() {
                         />
                         {listing.status === 'sold' && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                            <Badge variant="destructive\" className="text-lg">SOLD</Badge>
+                            <Badge variant="destructive" className="text-lg">SOLD</Badge>
                           </div>
                         )}
                       </div>

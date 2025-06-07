@@ -111,7 +111,7 @@ export const fetchListings = async (params?: {
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
 
-    const url = `/marketplace/listings${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const url = `/listings${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     const response = await api.get(url);
     return response.data?.listings || [];
   } catch (error) {
