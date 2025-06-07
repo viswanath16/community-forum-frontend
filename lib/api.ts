@@ -439,7 +439,7 @@ export const fetchListings = async (params?: {
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
 
-    const url = `/marketplace/listings${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const url = `/marketplace${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     const response = await api.get(url);
     console.log('Listings API response:', response.data);
     
@@ -467,7 +467,7 @@ export const fetchListings = async (params?: {
 
 export const fetchListing = async (id: string) => {
   try {
-    const response = await api.get(`/marketplace/listings/${id}`);
+    const response = await api.get(`/marketplace/${id}`);
     console.log('Listing API response:', response.data);
     
     // Handle the actual backend response structure
@@ -497,7 +497,7 @@ export const createListing = async (data: {
   tags?: string[];
 }) => {
   try {
-    const response = await api.post('/marketplace/listings', data);
+    const response = await api.post('/marketplace', data);
     console.log('Create listing API response:', response.data);
     
     // Handle the actual backend response structure
@@ -528,7 +528,7 @@ export const updateListing = async (id: string, data: {
   status?: 'active' | 'sold' | 'inactive';
 }) => {
   try {
-    const response = await api.put(`/marketplace/listings/${id}`, data);
+    const response = await api.put(`/marketplace/${id}`, data);
     console.log('Update listing API response:', response.data);
     
     // Handle the actual backend response structure
@@ -549,7 +549,7 @@ export const updateListing = async (id: string, data: {
 
 export const deleteListing = async (id: string) => {
   try {
-    const response = await api.delete(`/marketplace/listings/${id}`);
+    const response = await api.delete(`/marketplace/${id}`);
     console.log('Delete listing API response:', response.data);
     return response.data;
   } catch (error) {
@@ -585,7 +585,7 @@ export const fetchMyListings = async () => {
 
 export const markListingAsSold = async (id: string) => {
   try {
-    const response = await api.patch(`/marketplace/listings/${id}/sold`);
+    const response = await api.patch(`/marketplace/${id}/sold`);
     console.log('Mark as sold API response:', response.data);
     
     // Handle the actual backend response structure
