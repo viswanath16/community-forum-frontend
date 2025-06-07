@@ -104,6 +104,15 @@ export default function MarketplacePage() {
     }
   };
 
+  // Get the display name for the selected category
+  const getSelectedCategoryName = () => {
+    if (selectedCategory === 'all') {
+      return 'All Categories';
+    }
+    const category = categories.find(cat => cat.id === selectedCategory);
+    return category ? category.name : 'Select category';
+  };
+
   if (loading && listings.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -186,7 +195,9 @@ export default function MarketplacePage() {
                 
                 <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue>
+                      {getSelectedCategoryName()}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
