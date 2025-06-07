@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User } from '@supabase/supabase-js';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 import { Search, Menu, X, MessageSquare, Bell, User as UserIcon, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
 
@@ -29,7 +29,7 @@ export default function Navbar() {
     async function loadUser() {
       try {
         const currentUser = await getCurrentUser();
-        setUser(currentUser);
+        setUser(currentUser as SupabaseUser | null);
       } catch (error) {
         console.error('Error loading user:', error);
       }
@@ -99,7 +99,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <>
-                <Button variant="ghost\" size="icon\" asChild>
+                <Button variant="ghost" size="icon" asChild>
                   <Link href="/notifications">
                     <Bell className="h-5 w-5" />
                   </Link>
