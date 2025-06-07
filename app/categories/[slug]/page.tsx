@@ -14,15 +14,30 @@ export async function generateStaticParams() {
   }
 }
 
-export default async function CategoryPage({ params }: { params: { slug: string } }) {
+interface PageProps {
+  params: { slug: string };
+}
+
+export default async function CategoryPage({ params }: PageProps) {
   try {
     // Fetch initial data on the server
     const category = await fetchCategory(params.slug);
     const threads = await fetchThreads(category.id);
     
-    return <CategoryPageClient initialCategory={category} initialThreads={threads} />;
+    return (
+      <CategoryPageClient 
+        initialCategory={category} 
+        initialThreads={threads} 
+      />
+    );
   } catch (error) {
     console.error('Error loading category data:', error);
-    return <CategoryPageClient initialCategory={null} initialThreads={[]} error="Failed to load category. Please try again later." />;
+    return (
+      <CategoryPageClient 
+        initialCategory={null} 
+        initialThreads={[]} 
+        error="Failed to load category. Please try again later." 
+      />
+    );
   }
 }
