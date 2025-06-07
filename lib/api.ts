@@ -125,30 +125,41 @@ const mockThreads = [
   }
 ];
 
+// Helper function to transform backend category data to frontend format
+const transformCategoryData = (backendCategory: any) => {
+  return {
+    id: backendCategory.value || backendCategory.id,
+    name: backendCategory.label || backendCategory.name,
+    slug: (backendCategory.value || backendCategory.label || '').toLowerCase().replace(/\s+/g, '-'),
+    description: backendCategory.description || `Discussions about ${backendCategory.label || backendCategory.name}`,
+    threadCount: backendCategory.threadCount || 0,
+    postCount: backendCategory.postCount || 0,
+    parentId: backendCategory.parentId || null,
+    subcategories: backendCategory.subcategories || []
+  };
+};
+
 // Categories API
 export const fetchCategories = async () => {
   try {
     const response = await api.get('/categories');
     console.log('Categories API response:', response.data);
     
+    let categories = [];
+    
     // Handle the actual backend response structure
-    // The backend likely returns { success: true, data: [...] } or similar
     if (response.data?.success && response.data?.data) {
-      return response.data.data;
+      categories = response.data.data;
+    } else if (Array.isArray(response.data)) {
+      categories = response.data;
+    } else if (response.data?.categories) {
+      categories = response.data.categories;
+    } else {
+      categories = response.data || [];
     }
     
-    // Handle direct array response
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-    
-    // Handle nested categories property
-    if (response.data?.categories) {
-      return response.data.categories;
-    }
-    
-    // Fallback to the response data itself
-    return response.data || [];
+    // Transform the categories to match frontend expectations
+    return categories.map(transformCategoryData);
   } catch (error) {
     console.warn('Backend not available, using mock data for categories');
     // Return mock data when backend is not available
@@ -161,16 +172,22 @@ export const fetchCategory = async (slug: string) => {
     const response = await api.get(`/categories/${slug}`);
     console.log('Category API response:', response.data);
     
+    let category = null;
+    
     // Handle the actual backend response structure
     if (response.data?.success && response.data?.data) {
-      return response.data.data;
+      category = response.data.data;
+    } else if (response.data?.category) {
+      category = response.data.category;
+    } else {
+      category = response.data;
     }
     
-    if (response.data?.category) {
-      return response.data.category;
+    if (category) {
+      return transformCategoryData(category);
     }
     
-    return response.data;
+    throw new Error('Category not found');
   } catch (error) {
     console.warn('Backend not available, using mock data for category');
     // Return mock category data
