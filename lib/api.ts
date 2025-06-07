@@ -129,11 +129,26 @@ const mockThreads = [
 export const fetchCategories = async () => {
   try {
     const response = await api.get('/categories');
-    // Handle different possible response structures
+    console.log('Categories API response:', response.data);
+    
+    // Handle the actual backend response structure
+    // The backend likely returns { success: true, data: [...] } or similar
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    
+    // Handle direct array response
     if (Array.isArray(response.data)) {
       return response.data;
     }
-    return response.data?.categories || response.data?.data || [];
+    
+    // Handle nested categories property
+    if (response.data?.categories) {
+      return response.data.categories;
+    }
+    
+    // Fallback to the response data itself
+    return response.data || [];
   } catch (error) {
     console.warn('Backend not available, using mock data for categories');
     // Return mock data when backend is not available
@@ -144,7 +159,18 @@ export const fetchCategories = async () => {
 export const fetchCategory = async (slug: string) => {
   try {
     const response = await api.get(`/categories/${slug}`);
-    return response.data?.category || response.data;
+    console.log('Category API response:', response.data);
+    
+    // Handle the actual backend response structure
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    
+    if (response.data?.category) {
+      return response.data.category;
+    }
+    
+    return response.data;
   } catch (error) {
     console.warn('Backend not available, using mock data for category');
     // Return mock category data
@@ -161,11 +187,24 @@ export const fetchThreads = async (categoryId?: string) => {
   try {
     const url = categoryId ? `/threads?categoryId=${categoryId}` : '/threads';
     const response = await api.get(url);
-    // Handle different possible response structures
+    console.log('Threads API response:', response.data);
+    
+    // Handle the actual backend response structure
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    
+    // Handle direct array response
     if (Array.isArray(response.data)) {
       return response.data;
     }
-    return response.data?.threads || response.data?.data || [];
+    
+    // Handle nested threads property
+    if (response.data?.threads) {
+      return response.data.threads;
+    }
+    
+    return response.data || [];
   } catch (error) {
     console.warn('Backend not available, using mock data for threads');
     // Return mock threads, filtered by category if specified
@@ -180,7 +219,18 @@ export const fetchThreads = async (categoryId?: string) => {
 export const fetchThread = async (id: string) => {
   try {
     const response = await api.get(`/threads/${id}`);
-    return response.data?.thread || response.data;
+    console.log('Thread API response:', response.data);
+    
+    // Handle the actual backend response structure
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    
+    if (response.data?.thread) {
+      return response.data.thread;
+    }
+    
+    return response.data;
   } catch (error) {
     console.warn('Backend not available, using mock data for thread');
     const thread = mockThreads.find(t => t.id === id);
@@ -198,7 +248,18 @@ export const createThread = async (data: {
 }) => {
   try {
     const response = await api.post('/threads', data);
-    return response.data?.thread || response.data;
+    console.log('Create thread API response:', response.data);
+    
+    // Handle the actual backend response structure
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    
+    if (response.data?.thread) {
+      return response.data.thread;
+    }
+    
+    return response.data;
   } catch (error) {
     console.warn('Backend not available, creating mock thread');
     // Create a mock thread when backend is not available
@@ -228,11 +289,24 @@ export const createThread = async (data: {
 export const fetchPosts = async (threadId: string) => {
   try {
     const response = await api.get(`/threads/${threadId}/posts`);
-    // Handle different possible response structures
+    console.log('Posts API response:', response.data);
+    
+    // Handle the actual backend response structure
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    
+    // Handle direct array response
     if (Array.isArray(response.data)) {
       return response.data;
     }
-    return response.data?.posts || response.data?.data || [];
+    
+    // Handle nested posts property
+    if (response.data?.posts) {
+      return response.data.posts;
+    }
+    
+    return response.data || [];
   } catch (error) {
     console.warn('Backend not available, returning empty posts');
     return [];
@@ -245,7 +319,18 @@ export const createPost = async (data: {
 }) => {
   try {
     const response = await api.post('/posts', data);
-    return response.data?.post || response.data;
+    console.log('Create post API response:', response.data);
+    
+    // Handle the actual backend response structure
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    
+    if (response.data?.post) {
+      return response.data.post;
+    }
+    
+    return response.data;
   } catch (error) {
     console.error('Error creating post:', error);
     throw error;
@@ -256,7 +341,18 @@ export const createPost = async (data: {
 export const fetchUserProfile = async (userId: string) => {
   try {
     const response = await api.get(`/users/${userId}`);
-    return response.data?.user || response.data;
+    console.log('User profile API response:', response.data);
+    
+    // Handle the actual backend response structure
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    
+    if (response.data?.user) {
+      return response.data.user;
+    }
+    
+    return response.data;
   } catch (error) {
     console.error('Error fetching user profile:', error);
     throw error;
@@ -266,7 +362,18 @@ export const fetchUserProfile = async (userId: string) => {
 export const updateUserProfile = async (userId: string, data: any) => {
   try {
     const response = await api.put(`/users/${userId}`, data);
-    return response.data?.user || response.data;
+    console.log('Update user profile API response:', response.data);
+    
+    // Handle the actual backend response structure
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    
+    if (response.data?.user) {
+      return response.data.user;
+    }
+    
+    return response.data;
   } catch (error) {
     console.error('Error updating user profile:', error);
     throw error;
@@ -277,7 +384,18 @@ export const updateUserProfile = async (userId: string, data: any) => {
 export const searchContent = async (query: string) => {
   try {
     const response = await api.get(`/search?q=${encodeURIComponent(query)}`);
-    return response.data?.results || response.data || [];
+    console.log('Search API response:', response.data);
+    
+    // Handle the actual backend response structure
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    
+    if (response.data?.results) {
+      return response.data.results;
+    }
+    
+    return response.data || [];
   } catch (error) {
     console.warn('Backend not available, returning empty search results');
     return [];
@@ -306,12 +424,24 @@ export const fetchListings = async (params?: {
 
     const url = `/marketplace/listings${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     const response = await api.get(url);
+    console.log('Listings API response:', response.data);
     
-    // Handle different possible response structures
+    // Handle the actual backend response structure
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    
+    // Handle direct array response
     if (Array.isArray(response.data)) {
       return response.data;
     }
-    return response.data?.listings || response.data?.data || [];
+    
+    // Handle nested listings property
+    if (response.data?.listings) {
+      return response.data.listings;
+    }
+    
+    return response.data || [];
   } catch (error) {
     console.warn('Backend not available, returning empty listings');
     return [];
@@ -321,7 +451,18 @@ export const fetchListings = async (params?: {
 export const fetchListing = async (id: string) => {
   try {
     const response = await api.get(`/marketplace/listings/${id}`);
-    return response.data?.listing || response.data;
+    console.log('Listing API response:', response.data);
+    
+    // Handle the actual backend response structure
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    
+    if (response.data?.listing) {
+      return response.data.listing;
+    }
+    
+    return response.data;
   } catch (error) {
     console.error('Error fetching listing:', error);
     throw error;
@@ -340,7 +481,18 @@ export const createListing = async (data: {
 }) => {
   try {
     const response = await api.post('/marketplace/listings', data);
-    return response.data?.listing || response.data;
+    console.log('Create listing API response:', response.data);
+    
+    // Handle the actual backend response structure
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    
+    if (response.data?.listing) {
+      return response.data.listing;
+    }
+    
+    return response.data;
   } catch (error) {
     console.error('Error creating listing:', error);
     throw error;
@@ -360,7 +512,18 @@ export const updateListing = async (id: string, data: {
 }) => {
   try {
     const response = await api.put(`/marketplace/listings/${id}`, data);
-    return response.data?.listing || response.data;
+    console.log('Update listing API response:', response.data);
+    
+    // Handle the actual backend response structure
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    
+    if (response.data?.listing) {
+      return response.data.listing;
+    }
+    
+    return response.data;
   } catch (error) {
     console.error('Error updating listing:', error);
     throw error;
@@ -370,6 +533,7 @@ export const updateListing = async (id: string, data: {
 export const deleteListing = async (id: string) => {
   try {
     const response = await api.delete(`/marketplace/listings/${id}`);
+    console.log('Delete listing API response:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error deleting listing:', error);
@@ -380,10 +544,22 @@ export const deleteListing = async (id: string) => {
 export const fetchMyListings = async () => {
   try {
     const response = await api.get('/marketplace/my-listings');
+    console.log('My listings API response:', response.data);
+    
+    // Handle the actual backend response structure
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    
     if (Array.isArray(response.data)) {
       return response.data;
     }
-    return response.data?.listings || response.data?.data || [];
+    
+    if (response.data?.listings) {
+      return response.data.listings;
+    }
+    
+    return response.data || [];
   } catch (error) {
     console.warn('Backend not available, returning empty listings');
     return [];
@@ -393,7 +569,18 @@ export const fetchMyListings = async () => {
 export const markListingAsSold = async (id: string) => {
   try {
     const response = await api.patch(`/marketplace/listings/${id}/sold`);
-    return response.data?.listing || response.data;
+    console.log('Mark as sold API response:', response.data);
+    
+    // Handle the actual backend response structure
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    
+    if (response.data?.listing) {
+      return response.data.listing;
+    }
+    
+    return response.data;
   } catch (error) {
     console.error('Error marking listing as sold:', error);
     throw error;
@@ -403,6 +590,7 @@ export const markListingAsSold = async (id: string) => {
 export const favoriteListingToggle = async (id: string) => {
   try {
     const response = await api.post(`/marketplace/listings/${id}/favorite`);
+    console.log('Favorite toggle API response:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error toggling favorite:', error);
@@ -413,10 +601,22 @@ export const favoriteListingToggle = async (id: string) => {
 export const fetchFavoriteListings = async () => {
   try {
     const response = await api.get('/marketplace/favorites');
+    console.log('Favorite listings API response:', response.data);
+    
+    // Handle the actual backend response structure
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    
     if (Array.isArray(response.data)) {
       return response.data;
     }
-    return response.data?.listings || response.data?.data || [];
+    
+    if (response.data?.listings) {
+      return response.data.listings;
+    }
+    
+    return response.data || [];
   } catch (error) {
     console.warn('Backend not available, returning empty favorites');
     return [];
@@ -429,6 +629,7 @@ export const reportListing = async (id: string, reason: string, description?: st
       reason,
       description
     });
+    console.log('Report listing API response:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error reporting listing:', error);
@@ -439,11 +640,24 @@ export const reportListing = async (id: string, reason: string, description?: st
 export const fetchMarketplaceCategories = async () => {
   try {
     const response = await api.get('/marketplace/categories');
-    // Handle different possible response structures
+    console.log('Marketplace categories API response:', response.data);
+    
+    // Handle the actual backend response structure
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    
+    // Handle direct array response
     if (Array.isArray(response.data)) {
       return response.data;
     }
-    return response.data?.categories || response.data?.data || [];
+    
+    // Handle nested categories property
+    if (response.data?.categories) {
+      return response.data.categories;
+    }
+    
+    return response.data || [];
   } catch (error) {
     console.warn('Backend not available, returning empty marketplace categories');
     return [];
@@ -455,6 +669,7 @@ export const contactSeller = async (listingId: string, message: string) => {
     const response = await api.post(`/marketplace/listings/${listingId}/contact`, {
       message
     });
+    console.log('Contact seller API response:', response.data);
     return response.data;
   } catch (error) {
     console.error('Error contacting seller:', error);
