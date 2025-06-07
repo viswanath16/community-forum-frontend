@@ -98,7 +98,7 @@ export default function CreateThreadPage() {
       router.push(`/threads/${threadData.id}`);
     } catch (err: any) {
       console.error('Error creating thread:', err);
-      setError(err.message || 'Failed to create thread. Please try again.');
+      setError('Failed to create thread. Please try again.');
       setSubmitting(false);
     }
   };
@@ -131,7 +131,7 @@ export default function CreateThreadPage() {
         </CardHeader>
         <CardContent>
           {error && (
-            <Alert variant="destructive\" className="mb-4">
+            <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>

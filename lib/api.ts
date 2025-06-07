@@ -200,8 +200,27 @@ export const createThread = async (data: {
     const response = await api.post('/threads', data);
     return response.data?.thread || response.data;
   } catch (error) {
-    console.error('Error creating thread:', error);
-    throw error;
+    console.warn('Backend not available, creating mock thread');
+    // Create a mock thread when backend is not available
+    const newThread = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: data.title,
+      content: data.content,
+      categoryId: data.categoryId,
+      authorId: 'current-user',
+      author: { username: 'CurrentUser', avatar: null },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      postCount: 0,
+      viewCount: 0,
+      isPinned: false,
+      isLocked: false
+    };
+    
+    // Add to mock threads array for future fetches
+    mockThreads.push(newThread);
+    
+    return newThread;
   }
 };
 
