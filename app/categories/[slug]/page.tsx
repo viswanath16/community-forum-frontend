@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { fetchCategory, fetchThreads } from '@/lib/api';
+import { fetchCategory, fetchThreads, fetchCategories } from '@/lib/api';
 import { Category, Thread, User } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,18 @@ import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { ChevronLeft, MessageSquare, Plus, PinIcon } from 'lucide-react';
 import { getCurrentUser } from '@/lib/auth';
+
+export async function generateStaticParams() {
+  try {
+    const categories = await fetchCategories();
+    return categories.map((category) => ({
+      slug: category.slug,
+    }));
+  } catch (error) {
+    console.error('Error generating static params:', error);
+    return [];
+  }
+}
 
 export default function CategoryPage() {
   const params = useParams();
