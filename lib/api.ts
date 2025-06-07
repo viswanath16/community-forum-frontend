@@ -25,7 +25,12 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    console.error('API Error:', error.response?.data || error.message);
+    // Handle HTML error responses (like 404 pages) more gracefully
+    if (error.response?.data && typeof error.response.data === 'string' && error.response.data.startsWith('<!DOCTYPE html>')) {
+      console.error(`API Error: Received HTML error page (${error.response.status} ${error.response.statusText})`);
+    } else {
+      console.error('API Error:', error.response?.data || error.message);
+    }
     return Promise.reject(error);
   }
 );
