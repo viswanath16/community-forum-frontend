@@ -5,17 +5,18 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getCurrentUser } from '@/lib/auth';
 import { fetchUserProfile } from '@/lib/api';
+import { User } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDistanceToNow } from 'date-fns';
-import { User, PenSquare, Settings, MessageSquare, Calendar } from 'lucide-react';
+import { User as UserIcon, PenSquare, Settings, MessageSquare, Calendar } from 'lucide-react';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -105,7 +106,7 @@ export default function ProfilePage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div className="flex items-center space-x-4 mb-4 md:mb-0">
             <Avatar className="h-24 w-24">
-              <AvatarImage src={user.user_metadata?.avatar_url || ''} alt={user.email || ''} />
+              <AvatarImage src={user.avatarUrl || ''} alt={user.email || ''} />
               <AvatarFallback className="text-xl">
                 {user.email?.charAt(0).toUpperCase() || 'U'}
               </AvatarFallback>
@@ -113,7 +114,7 @@ export default function ProfilePage() {
             <div>
               <h1 className="text-2xl font-bold">{profile?.username || user.email}</h1>
               <p className="text-muted-foreground">
-                Member since {formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}
+                Member since {user.createdAt ? formatDistanceToNow(new Date(user.createdAt), { addSuffix: true }) : 'recently'}
               </p>
             </div>
           </div>

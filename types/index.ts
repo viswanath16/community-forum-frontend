@@ -3,7 +3,7 @@ export interface User {
   email: string;
   username?: string;
   avatarUrl?: string;
-  createdAt: string;
+  createdAt?: string; // Make this optional to match Supabase User type
   role?: string;
   rating?: number;
 }

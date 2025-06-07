@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { fetchThread, fetchPosts, createPost } from '@/lib/api';
-import { Thread, Post } from '@/types';
+import { Thread, Post, User } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,7 +26,7 @@ export default function ThreadPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -274,7 +274,7 @@ export default function ThreadPage() {
             ) : (
               <form onSubmit={handleSubmitPost}>
                 {error && (
-                  <Alert variant="destructive\" className="mb-4">
+                  <Alert variant="destructive" className="mb-4">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
