@@ -31,7 +31,7 @@ api.interceptors.response.use(
   }
 );
 
-// Mock data generators for threads/categories/posts only
+// Mock data generators for threads/posts only (categories now use real API)
 const generateMockUser = (id: number): User => ({
   id: id.toString(),
   email: `user${id}@example.com`,
@@ -40,15 +40,6 @@ const generateMockUser = (id: number): User => ({
   createdAt: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
   role: 'user',
   rating: Math.floor(Math.random() * 5) + 1,
-});
-
-const generateMockCategory = (id: number): Category => ({
-  id: id.toString(),
-  name: `Category ${id}`,
-  description: `Description for category ${id}`,
-  slug: `category-${id}`,
-  threadCount: Math.floor(Math.random() * 50),
-  postCount: Math.floor(Math.random() * 200),
 });
 
 const generateMockThread = (id: number): Thread => ({
@@ -192,19 +183,27 @@ export const usersAPI = {
   }
 };
 
-// Categories API - Using mock data
+// Categories API - NOW USING REAL BACKEND ENDPOINT
 export const categoriesAPI = {
   getAll: async () => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const categories = Array.from({ length: 6 }, (_, i) => generateMockCategory(i + 1));
-    return { data: categories };
+    try {
+      const response = await api.get('/categories');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching categories from API:', error);
+      // Return empty array instead of throwing to prevent app crashes
+      return { data: [], categories: [] };
+    }
   },
 
   getBySlug: async (slug: string) => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const id = parseInt(slug.split('-')[1]) || 1;
-    const category = generateMockCategory(id);
-    return { data: category };
+    try {
+      const response = await api.get(`/categories/${slug}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching category by slug:', error);
+      throw error;
+    }
   },
 
   create: async (data: any) => {
@@ -537,7 +536,7 @@ export const analyticsAPI = {
 // Legacy API functions for backward compatibility
 export const fetchCategories = async () => {
   const response = await categoriesAPI.getAll();
-  return response.data || response;
+  return response.data || response.categories || response;
 };
 
 export const fetchCategory = async (slug: string) => {
