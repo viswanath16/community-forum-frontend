@@ -20,6 +20,9 @@ export const signIn = async (email: string, password: string) => {
     if (data.user && typeof window !== 'undefined') {
       localStorage.setItem('currentUser', JSON.stringify(data.user));
       localStorage.setItem('authToken', data.token);
+      
+      // Dispatch event to notify components
+      window.dispatchEvent(new CustomEvent('authStateChanged', { detail: data.user }));
     }
     
     return data;
@@ -39,6 +42,9 @@ export const signOut = async () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('authToken');
       localStorage.removeItem('currentUser');
+      
+      // Dispatch event to notify components
+      window.dispatchEvent(new CustomEvent('authStateChanged', { detail: null }));
     }
   }
 };
@@ -66,15 +72,6 @@ export const getCurrentUser = async (): Promise<User | null> => {
             rating: userData.rating,
           };
           
-          // Validate token in background (don't wait for it)
-          authAPI.refreshToken().catch(() => {
-            // If token is invalid, clear storage
-            if (typeof window !== 'undefined') {
-              localStorage.removeItem('authToken');
-              localStorage.removeItem('currentUser');
-            }
-          });
-          
           return user;
         } catch (parseError) {
           console.error('Error parsing stored user data:', parseError);
@@ -84,45 +81,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
       }
     }
 
-    // If no stored user, try to refresh/validate token with backend
-    try {
-      const userData = await authAPI.refreshToken();
-      
-      if (!userData.user) {
-        // Clear invalid data
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('currentUser');
-        }
-        return null;
-      }
-
-      // Convert backend user to our User type and store it
-      const user: User = {
-        id: userData.user.id,
-        email: userData.user.email,
-        username: userData.user.username,
-        avatarUrl: userData.user.avatar || userData.user.avatarUrl,
-        createdAt: userData.user.createdAt,
-        role: userData.user.role || 'user',
-        rating: userData.user.rating,
-      };
-
-      // Store updated user data
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('currentUser', JSON.stringify(userData.user));
-      }
-
-      return user;
-    } catch (refreshError) {
-      console.error('Error refreshing token:', refreshError);
-      // Clear invalid token and user data
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('currentUser');
-      }
-      return null;
-    }
+    return null;
   } catch (error) {
     console.error('Error getting current user:', error);
     // Clear invalid data

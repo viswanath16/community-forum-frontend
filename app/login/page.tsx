@@ -41,10 +41,7 @@ export default function LoginPage() {
       
       const result = await signIn(data.email, data.password);
       
-      if (result.success) {
-        // Dispatch custom event to notify navbar
-        window.dispatchEvent(new Event('authStateChanged'));
-        
+      if (result.success || result.user) {
         // Small delay to ensure state updates, then redirect
         setTimeout(() => {
           router.push('/');
@@ -79,7 +76,7 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           {error && (
-            <Alert variant="destructive\" className="mb-4">
+            <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>

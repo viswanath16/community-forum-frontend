@@ -49,14 +49,11 @@ export default function RegisterPage() {
       // Sign up with the backend
       const signUpResult = await signUp(data.email, data.password, data.username);
       
-      if (signUpResult.success) {
+      if (signUpResult.success || signUpResult.user) {
         // Auto sign in after successful registration
         const signInResult = await signIn(data.email, data.password);
         
-        if (signInResult.success) {
-          // Dispatch custom event to notify navbar
-          window.dispatchEvent(new Event('authStateChanged'));
-          
+        if (signInResult.success || signInResult.user) {
           // Small delay to ensure state updates, then redirect
           setTimeout(() => {
             router.push('/');
@@ -94,7 +91,7 @@ export default function RegisterPage() {
         </CardHeader>
         <CardContent>
           {error && (
-            <Alert variant="destructive\" className="mb-4">
+            <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>

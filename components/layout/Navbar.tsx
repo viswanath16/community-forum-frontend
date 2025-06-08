@@ -42,6 +42,27 @@ export default function Navbar() {
     
     loadUser();
 
+    // Listen for custom auth state changes
+    const handleAuthChange = (event: CustomEvent) => {
+      const userData = event.detail;
+      if (userData) {
+        // Convert backend user data to our User type
+        const user: User = {
+          id: userData.id,
+          email: userData.email,
+          username: userData.username,
+          avatarUrl: userData.avatar || userData.avatarUrl,
+          createdAt: userData.createdAt,
+          role: userData.role || 'user',
+          rating: userData.rating,
+        };
+        setUser(user);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    };
+
     // Listen for storage changes (when user logs in/out in another tab)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'authToken' || e.key === 'currentUser') {
@@ -49,17 +70,12 @@ export default function Navbar() {
       }
     };
 
-    // Listen for custom events (when user logs in/out in same tab)
-    const handleAuthChange = () => {
-      loadUser();
-    };
-
+    window.addEventListener('authStateChanged', handleAuthChange as EventListener);
     window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('authStateChanged', handleAuthChange);
     
     return () => {
+      window.removeEventListener('authStateChanged', handleAuthChange as EventListener);
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('authStateChanged', handleAuthChange);
     };
   }, []);
 
@@ -75,10 +91,6 @@ export default function Navbar() {
     try {
       await signOut();
       setUser(null);
-      
-      // Dispatch custom event to notify other components
-      window.dispatchEvent(new Event('authStateChanged'));
-      
       router.push('/');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -154,9 +166,11 @@ export default function Navbar() {
                         <p className="text-sm font-medium leading-none">
                           {user.username || user.email}
                         </p>
-                        <p className="text-xs leading-none text-muted-foreground">
-                          {user.email}
-                        </p>
+                        {user.username && (
+                          <p className="text-xs leading-none text-muted-foreground">
+                            {user.email}
+                          </p>
+                        )}
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
@@ -268,7 +282,9 @@ export default function Navbar() {
                     </Avatar>
                     <div>
                       <p className="text-sm font-medium">{user.username || user.email}</p>
-                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                      {user.username && (
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-2">
