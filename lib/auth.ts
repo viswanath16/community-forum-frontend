@@ -8,7 +8,7 @@ export const signUp = async (email: string, password: string, username?: string)
     const data = await authAPI.register(email, password, username);
     return data;
   } catch (error: any) {
-    throw new Error(error.message || 'Failed to create account');
+    throw new Error(error.response?.data?.message || error.message || 'Failed to create account');
   }
 };
 
@@ -24,7 +24,7 @@ export const signIn = async (email: string, password: string) => {
     
     return data;
   } catch (error: any) {
-    throw new Error(error.message || 'Failed to sign in');
+    throw new Error(error.response?.data?.message || error.message || 'Failed to sign in');
   }
 };
 
@@ -144,7 +144,7 @@ export const forgotPassword = async (email: string) => {
     const data = await authAPI.forgotPassword(email);
     return data;
   } catch (error: any) {
-    throw new Error(error.message || 'Failed to send reset email');
+    throw new Error(error.response?.data?.message || error.message || 'Failed to send reset email');
   }
 };
 
@@ -153,7 +153,7 @@ export const resetPassword = async (token: string, password: string) => {
     const data = await authAPI.resetPassword(token, password);
     return data;
   } catch (error: any) {
-    throw new Error(error.message || 'Failed to reset password');
+    throw new Error(error.response?.data?.message || error.message || 'Failed to reset password');
   }
 };
 
@@ -162,7 +162,7 @@ export const verifyEmail = async (token: string) => {
     const data = await authAPI.verifyEmail(token);
     return data;
   } catch (error: any) {
-    throw new Error(error.message || 'Failed to verify email');
+    throw new Error(error.response?.data?.message || error.message || 'Failed to verify email');
   }
 };
 
@@ -171,6 +171,6 @@ export const resendVerification = async (email: string) => {
     const data = await authAPI.resendVerification(email);
     return data;
   } catch (error: any) {
-    throw new Error(error.message || 'Failed to resend verification');
+    throw new Error(error.response?.data?.message || error.message || 'Failed to resend verification');
   }
 };

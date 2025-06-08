@@ -109,8 +109,20 @@ export const authAPI = {
   },
 
   logout: async () => {
-    const response = await api.post('/auth/logout');
-    return response.data;
+    try {
+      const response = await api.post('/auth/logout');
+      return response.data;
+    } catch (error) {
+      // Even if logout fails on server, we should clear local storage
+      console.error('Logout API error:', error);
+      return { success: true };
+    } finally {
+      // Always clear local storage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('currentUser');
+      }
+    }
   },
 
   refreshToken: async () => {
