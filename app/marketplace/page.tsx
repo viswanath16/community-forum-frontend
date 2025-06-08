@@ -48,12 +48,35 @@ export default function MarketplacePage() {
           fetchMarketplaceCategories()
         ]);
         
-        setListings(listingsData);
-        setCategories(categoriesData);
+        // Handle the case where data might be wrapped in an object
+        const processedListings = Array.isArray(listingsData) ? listingsData : (listingsData?.listings || []);
+        const processedCategories = Array.isArray(categoriesData) ? categoriesData : (categoriesData?.categories || []);
+        
+        setListings(processedListings);
+        setCategories(processedCategories);
         setError(null);
       } catch (err) {
         console.error('Error loading marketplace data:', err);
-        setError('Failed to load marketplace data. Please try again later.');
+        
+        // Check if the error is specifically about no listings being found
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        if (errorMessage.includes('Listing not found') || errorMessage.includes('No listings found')) {
+          // This is not really an error - just no listings available
+          setListings([]);
+          setError(null);
+          
+          // Still try to load categories
+          try {
+            const categoriesData = await fetchMarketplaceCategories();
+            const processedCategories = Array.isArray(categoriesData) ? categoriesData : (categoriesData?.categories || []);
+            setCategories(processedCategories);
+          } catch (categoryErr) {
+            console.error('Error loading categories:', categoryErr);
+            setCategories([]);
+          }
+        } else {
+          setError('Failed to load marketplace data. Please try again later.');
+        }
       } finally {
         setLoading(false);
       }
@@ -77,10 +100,21 @@ export default function MarketplacePage() {
       };
       
       const data = await fetchListings(params);
-      setListings(data);
+      const processedListings = Array.isArray(data) ? data : (data?.listings || []);
+      setListings(processedListings);
+      setError(null);
     } catch (err) {
       console.error('Error searching listings:', err);
-      setError('Failed to search listings. Please try again.');
+      
+      // Check if the error is specifically about no listings being found
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.includes('Listing not found') || errorMessage.includes('No listings found')) {
+        // This is not really an error - just no listings match the search
+        setListings([]);
+        setError(null);
+      } else {
+        setError('Failed to search listings. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -96,9 +130,21 @@ export default function MarketplacePage() {
     try {
       setLoading(true);
       const data = await fetchListings();
-      setListings(data);
+      const processedListings = Array.isArray(data) ? data : (data?.listings || []);
+      setListings(processedListings);
+      setError(null);
     } catch (err) {
       console.error('Error loading listings:', err);
+      
+      // Check if the error is specifically about no listings being found
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.includes('Listing not found') || errorMessage.includes('No listings found')) {
+        // This is not really an error - just no listings available
+        setListings([]);
+        setError(null);
+      } else {
+        setError('Failed to load listings. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
