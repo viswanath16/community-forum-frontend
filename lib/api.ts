@@ -31,443 +31,603 @@ api.interceptors.response.use(
   }
 );
 
+// Mock data generators
+const generateMockUser = (id: number): User => ({
+  id: id.toString(),
+  email: `user${id}@example.com`,
+  username: `user${id}`,
+  avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=user${id}`,
+  createdAt: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
+  role: 'user',
+  rating: Math.floor(Math.random() * 5) + 1,
+});
+
+const generateMockCategory = (id: number): Category => ({
+  id: id.toString(),
+  name: `Category ${id}`,
+  description: `Description for category ${id}`,
+  slug: `category-${id}`,
+  threadCount: Math.floor(Math.random() * 50),
+  postCount: Math.floor(Math.random() * 200),
+});
+
+const generateMockThread = (id: number): Thread => ({
+  id: id.toString(),
+  title: `Thread ${id}: Discussion Topic`,
+  slug: `thread-${id}`,
+  content: `This is the content for thread ${id}. Lorem ipsum dolor sit amet, consectetur adipiscing elit.`,
+  categoryId: Math.floor(Math.random() * 5 + 1).toString(),
+  author: generateMockUser(Math.floor(Math.random() * 10) + 1),
+  authorId: Math.floor(Math.random() * 10 + 1).toString(),
+  createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+  updatedAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+  viewCount: Math.floor(Math.random() * 1000),
+  postCount: Math.floor(Math.random() * 20),
+  isPinned: Math.random() > 0.9,
+  isLocked: Math.random() > 0.95,
+  lastPostAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+});
+
+const generateMockPost = (id: number, threadId: string): Post => ({
+  id: id.toString(),
+  content: `This is post ${id} content. Lorem ipsum dolor sit amet, consectetur adipiscing elit.`,
+  threadId,
+  author: generateMockUser(Math.floor(Math.random() * 10) + 1),
+  authorId: Math.floor(Math.random() * 10 + 1).toString(),
+  createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+  updatedAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
+});
+
 // Authentication API
 export const authAPI = {
   register: async (email: string, password: string, username?: string) => {
-    const response = await api.post('/auth/register', {
+    // Mock registration
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const mockUser = {
+      id: Date.now().toString(),
       email,
-      password,
-      username
-    });
-    return response.data;
+      username: username || email.split('@')[0],
+      token: 'mock-jwt-token'
+    };
+    return { user: mockUser, token: mockUser.token };
   },
 
   login: async (email: string, password: string) => {
-    const response = await api.post('/auth/login', {
+    // Mock login
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const mockUser = {
+      id: '1',
       email,
-      password
-    });
+      username: email.split('@')[0],
+      token: 'mock-jwt-token'
+    };
     
     // Store token if provided
-    if (response.data.token && typeof window !== 'undefined') {
-      localStorage.setItem('authToken', response.data.token);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('authToken', mockUser.token);
     }
     
-    return response.data;
+    return { user: mockUser, token: mockUser.token };
   },
 
   logout: async () => {
-    const response = await api.post('/auth/logout');
-    
     // Remove token from storage
     if (typeof window !== 'undefined') {
       localStorage.removeItem('authToken');
     }
-    
-    return response.data;
+    return { success: true };
   },
 
   refreshToken: async () => {
-    const response = await api.post('/auth/refresh');
-    
-    // Update token if provided
-    if (response.data.token && typeof window !== 'undefined') {
-      localStorage.setItem('authToken', response.data.token);
-    }
-    
-    return response.data;
+    // Mock refresh
+    const mockUser = {
+      id: '1',
+      email: 'user@example.com',
+      username: 'user',
+      token: 'mock-jwt-token'
+    };
+    return { user: mockUser, token: mockUser.token };
   },
 
   forgotPassword: async (email: string) => {
-    const response = await api.post('/auth/forgot-password', { email });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { message: 'Password reset email sent' };
   },
 
   resetPassword: async (token: string, password: string) => {
-    const response = await api.post('/auth/reset-password', { token, password });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { message: 'Password reset successful' };
   },
 
   verifyEmail: async (token: string) => {
-    const response = await api.post('/auth/verify-email', { token });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { message: 'Email verified successfully' };
   },
 
   resendVerification: async (email: string) => {
-    const response = await api.post('/auth/resend-verification', { email });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { message: 'Verification email sent' };
   }
 };
 
 // Users API
 export const usersAPI = {
   getProfile: async (userId?: string) => {
-    const endpoint = userId ? `/users/${userId}` : '/users/me';
-    const response = await api.get(endpoint);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const mockUser = generateMockUser(parseInt(userId || '1'));
+    return { data: mockUser };
   },
 
   updateProfile: async (data: any) => {
-    const response = await api.put('/users/me', data);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { ...generateMockUser(1), ...data } };
   },
 
   uploadAvatar: async (file: File) => {
-    const formData = new FormData();
-    formData.append('avatar', file);
-    
-    const response = await api.post('/users/me/avatar', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=updated' } };
   },
 
   getUsers: async (params?: any) => {
-    const response = await api.get('/users', { params });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const users = Array.from({ length: 10 }, (_, i) => generateMockUser(i + 1));
+    return { data: users };
   },
 
   updateUserRole: async (userId: string, role: string) => {
-    const response = await api.put(`/users/${userId}/role`, { role });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   },
 
   banUser: async (userId: string, reason?: string) => {
-    const response = await api.post(`/users/${userId}/ban`, { reason });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   },
 
   unbanUser: async (userId: string) => {
-    const response = await api.delete(`/users/${userId}/ban`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   }
 };
 
 // Categories API
 export const categoriesAPI = {
   getAll: async () => {
-    const response = await api.get('/categories');
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const categories = Array.from({ length: 6 }, (_, i) => generateMockCategory(i + 1));
+    return { data: categories };
   },
 
   getBySlug: async (slug: string) => {
-    const response = await api.get(`/categories/${slug}`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const id = parseInt(slug.split('-')[1]) || 1;
+    const category = generateMockCategory(id);
+    return { data: category };
   },
 
   create: async (data: any) => {
-    const response = await api.post('/categories', data);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { ...generateMockCategory(Date.now()), ...data } };
   },
 
   update: async (id: string, data: any) => {
-    const response = await api.put(`/categories/${id}`, data);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { ...generateMockCategory(parseInt(id)), ...data } };
   },
 
   delete: async (id: string) => {
-    const response = await api.delete(`/categories/${id}`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   },
 
   reorder: async (categoryIds: string[]) => {
-    const response = await api.put('/categories/reorder', { categoryIds });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   }
 };
 
-// Threads API - Updated to use correct endpoints
+// Threads API - Updated to use mock data
 export const threadsAPI = {
   getAll: async (params?: any) => {
-    const response = await api.get('/threads', { params });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const threads = Array.from({ length: 20 }, (_, i) => generateMockThread(i + 1));
+    return { data: threads };
   },
 
   getById: async (id: string) => {
-    const response = await api.get(`/threads/${id}`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const thread = generateMockThread(parseInt(id));
+    return { data: thread };
   },
 
   create: async (data: any) => {
-    const response = await api.post('/threads', data);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const newThread = {
+      ...generateMockThread(Date.now()),
+      ...data,
+      id: Date.now().toString(),
+    };
+    return { data: newThread };
   },
 
   update: async (id: string, data: any) => {
-    const response = await api.put(`/threads/${id}`, data);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { ...generateMockThread(parseInt(id)), ...data } };
   },
 
   delete: async (id: string) => {
-    const response = await api.delete(`/threads/${id}`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   },
 
   pin: async (id: string) => {
-    const response = await api.post(`/threads/${id}/pin`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   },
 
   unpin: async (id: string) => {
-    const response = await api.delete(`/threads/${id}/pin`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   },
 
   lock: async (id: string) => {
-    const response = await api.post(`/threads/${id}/lock`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   },
 
   unlock: async (id: string) => {
-    const response = await api.delete(`/threads/${id}/lock`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   },
 
   vote: async (id: string, type: 'up' | 'down') => {
-    const response = await api.post(`/threads/${id}/vote`, { type });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { data: { success: true } };
   },
 
   removeVote: async (id: string) => {
-    const response = await api.delete(`/threads/${id}/vote`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { data: { success: true } };
   }
 };
 
 // Posts API
 export const postsAPI = {
   getByThread: async (threadId: string, params?: any) => {
-    const response = await api.get(`/threads/${threadId}/posts`, { params });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const posts = Array.from({ length: 5 }, (_, i) => generateMockPost(i + 1, threadId));
+    return { data: posts };
   },
 
   getById: async (id: string) => {
-    const response = await api.get(`/posts/${id}`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const post = generateMockPost(parseInt(id), '1');
+    return { data: post };
   },
 
   create: async (data: any) => {
-    const response = await api.post('/posts', data);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const newPost = {
+      ...generateMockPost(Date.now(), data.threadId),
+      ...data,
+      id: Date.now().toString(),
+    };
+    return { data: newPost };
   },
 
   update: async (id: string, data: any) => {
-    const response = await api.put(`/posts/${id}`, data);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { ...generateMockPost(parseInt(id), '1'), ...data } };
   },
 
   delete: async (id: string) => {
-    const response = await api.delete(`/posts/${id}`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   },
 
   vote: async (id: string, type: 'up' | 'down') => {
-    const response = await api.post(`/posts/${id}/vote`, { type });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { data: { success: true } };
   },
 
   removeVote: async (id: string) => {
-    const response = await api.delete(`/posts/${id}/vote`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { data: { success: true } };
   },
 
   markAsAnswer: async (id: string) => {
-    const response = await api.post(`/posts/${id}/answer`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { data: { success: true } };
   },
 
   unmarkAsAnswer: async (id: string) => {
-    const response = await api.delete(`/posts/${id}/answer`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { data: { success: true } };
   }
 };
 
 // Search API
 export const searchAPI = {
   search: async (params: any) => {
-    const response = await api.get('/search', { params });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const results = Array.from({ length: 10 }, (_, i) => ({
+      type: 'thread',
+      id: (i + 1).toString(),
+      title: `Search Result ${i + 1}`,
+      content: `This is search result content ${i + 1}`,
+      author: generateMockUser(i + 1),
+      createdAt: new Date().toISOString(),
+      relevanceScore: Math.random(),
+    }));
+    return { data: { results } };
   },
 
   suggestions: async (q: string) => {
-    const response = await api.get('/search/suggestions', { params: { q } });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const suggestions = [`${q} suggestion 1`, `${q} suggestion 2`, `${q} suggestion 3`];
+    return { data: { suggestions } };
   }
 };
 
 // Notifications API
 export const notificationsAPI = {
   getAll: async (params?: any) => {
-    const response = await api.get('/notifications', { params });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const notifications = Array.from({ length: 5 }, (_, i) => ({
+      id: (i + 1).toString(),
+      userId: '1',
+      type: 'reply',
+      title: `Notification ${i + 1}`,
+      message: `You have a new notification ${i + 1}`,
+      read: Math.random() > 0.5,
+      createdAt: new Date().toISOString(),
+    }));
+    return { data: { notifications } };
   },
 
   markAsRead: async (id: string) => {
-    const response = await api.put(`/notifications/${id}/read`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { data: { success: true } };
   },
 
   markAllAsRead: async () => {
-    const response = await api.put('/notifications/read-all');
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { data: { success: true } };
   },
 
   delete: async (id: string) => {
-    const response = await api.delete(`/notifications/${id}`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { data: { success: true } };
   },
 
   getUnreadCount: async () => {
-    const response = await api.get('/notifications/unread-count');
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 300));
+    return { data: { count: Math.floor(Math.random() * 10) } };
   }
 };
 
-// Marketplace API - Updated to use /api/marketplace endpoint
+// Marketplace API - Updated to use mock data
 export const marketplaceAPI = {
   getListings: async (params?: any) => {
-    const response = await api.get('/marketplace', { params });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const listings = Array.from({ length: 12 }, (_, i) => ({
+      id: (i + 1).toString(),
+      title: `Listing ${i + 1}`,
+      description: `Description for listing ${i + 1}`,
+      price: Math.floor(Math.random() * 1000) + 50,
+      category: { id: '1', name: 'Electronics' },
+      location: 'New York, NY',
+      condition: 'good',
+      status: 'active',
+      images: [`https://picsum.photos/400/300?random=${i + 1}`],
+      tags: ['tag1', 'tag2'],
+      seller: generateMockUser(i + 1),
+      sellerId: (i + 1).toString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }));
+    return { data: listings };
   },
 
   getListing: async (id: string) => {
-    const response = await api.get(`/marketplace/${id}`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const listing = {
+      id,
+      title: `Listing ${id}`,
+      description: `Detailed description for listing ${id}`,
+      price: Math.floor(Math.random() * 1000) + 50,
+      category: { id: '1', name: 'Electronics' },
+      location: 'New York, NY',
+      condition: 'good',
+      status: 'active',
+      images: [`https://picsum.photos/400/300?random=${id}`],
+      tags: ['electronics', 'gadget'],
+      seller: generateMockUser(1),
+      sellerId: '1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    return { data: listing };
   },
 
   createListing: async (data: any) => {
-    const response = await api.post('/marketplace', data);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const newListing = {
+      id: Date.now().toString(),
+      ...data,
+      seller: generateMockUser(1),
+      sellerId: '1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    return { data: newListing };
   },
 
   updateListing: async (id: string, data: any) => {
-    const response = await api.put(`/marketplace/${id}`, data);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   },
 
   deleteListing: async (id: string) => {
-    const response = await api.delete(`/marketplace/${id}`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   },
 
   getMyListings: async (params?: any) => {
-    const response = await api.get('/marketplace/my-listings', { params });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const listings = Array.from({ length: 3 }, (_, i) => ({
+      id: (i + 1).toString(),
+      title: `My Listing ${i + 1}`,
+      description: `Description for my listing ${i + 1}`,
+      price: Math.floor(Math.random() * 1000) + 50,
+      category: { id: '1', name: 'Electronics' },
+      location: 'New York, NY',
+      condition: 'good',
+      status: 'active',
+      seller: generateMockUser(1),
+      sellerId: '1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }));
+    return { data: listings };
   },
 
   markAsSold: async (id: string) => {
-    const response = await api.post(`/marketplace/${id}/sold`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   },
 
   toggleFavorite: async (id: string) => {
-    const response = await api.post(`/marketplace/${id}/favorite`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { data: { success: true } };
   },
 
   getFavorites: async (params?: any) => {
-    const response = await api.get('/marketplace/favorites', { params });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { data: [] };
   },
 
   reportListing: async (id: string, data: any) => {
-    const response = await api.post(`/marketplace/${id}/report`, data);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   },
 
   contactSeller: async (id: string, data: any) => {
-    const response = await api.post(`/marketplace/${id}/contact`, data);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   },
 
   getCategories: async () => {
-    const response = await api.get('/marketplace/categories');
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const categories = [
+      { id: '1', name: 'Electronics' },
+      { id: '2', name: 'Furniture' },
+      { id: '3', name: 'Clothing' },
+      { id: '4', name: 'Books' },
+      { id: '5', name: 'Sports' },
+    ];
+    return { data: categories };
   },
 
   uploadImages: async (files: File[]) => {
-    const formData = new FormData();
-    files.forEach((file, index) => {
-      formData.append(`images[${index}]`, file);
-    });
-    
-    const response = await api.post('/marketplace/upload-images', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    const urls = files.map((_, i) => `https://picsum.photos/400/300?random=${Date.now() + i}`);
+    return { data: { urls } };
   }
 };
 
 // Messages API
 export const messagesAPI = {
   getConversations: async (params?: any) => {
-    const response = await api.get('/messages/conversations', { params });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const conversations = Array.from({ length: 3 }, (_, i) => ({
+      id: (i + 1).toString(),
+      participants: [generateMockUser(1), generateMockUser(i + 2)],
+      lastMessage: {
+        id: (i + 1).toString(),
+        content: `Last message ${i + 1}`,
+        senderId: (i + 2).toString(),
+        createdAt: new Date().toISOString(),
+      },
+      unreadCount: Math.floor(Math.random() * 5),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }));
+    return { data: { conversations } };
   },
 
   getConversation: async (id: string, params?: any) => {
-    const response = await api.get(`/messages/conversations/${id}`, { params });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const messages = Array.from({ length: 5 }, (_, i) => ({
+      id: (i + 1).toString(),
+      conversationId: id,
+      senderId: i % 2 === 0 ? '1' : '2',
+      content: `Message ${i + 1} content`,
+      createdAt: new Date(Date.now() - (5 - i) * 60000).toISOString(),
+    }));
+    return { data: { messages } };
   },
 
   sendMessage: async (data: any) => {
-    const response = await api.post('/messages', data);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const newMessage = {
+      id: Date.now().toString(),
+      ...data,
+      senderId: '1',
+      createdAt: new Date().toISOString(),
+    };
+    return { data: newMessage };
   },
 
   markAsRead: async (conversationId: string) => {
-    const response = await api.put(`/messages/conversations/${conversationId}/read`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { data: { success: true } };
   },
 
   deleteConversation: async (id: string) => {
-    const response = await api.delete(`/messages/conversations/${id}`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   }
 };
 
 // Reports API
 export const reportsAPI = {
   create: async (data: any) => {
-    const response = await api.post('/reports', data);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   },
 
   getAll: async (params?: any) => {
-    const response = await api.get('/reports', { params });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { data: [] };
   },
 
   getById: async (id: string) => {
-    const response = await api.get(`/reports/${id}`);
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { data: {} };
   },
 
   updateStatus: async (id: string, status: string) => {
-    const response = await api.put(`/reports/${id}/status`, { status });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return { data: { success: true } };
   }
 };
 
 // Analytics API
 export const analyticsAPI = {
   getStats: async () => {
-    const response = await api.get('/analytics/stats');
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { data: {} };
   },
 
   getUserActivity: async (params?: any) => {
-    const response = await api.get('/analytics/user-activity', { params });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { data: [] };
   },
 
   getPopularContent: async (params?: any) => {
-    const response = await api.get('/analytics/popular-content', { params });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return { data: [] };
   }
 };
 
@@ -484,7 +644,7 @@ export const fetchCategory = async (slug: string) => {
 
 export const fetchThreads = async (params?: any) => {
   const response = await threadsAPI.getAll(params);
-  return response;
+  return response.data || response;
 };
 
 export const fetchThread = async (id: string) => {
