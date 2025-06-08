@@ -324,7 +324,7 @@ export default function MarketplacePage() {
                         />
                         {listing.status === 'sold' && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                            <Badge variant="destructive\" className="text-lg">SOLD</Badge>
+                            <Badge variant="destructive" className="text-lg">SOLD</Badge>
                           </div>
                         )}
                       </div>
@@ -350,7 +350,7 @@ export default function MarketplacePage() {
                     <div className="flex flex-wrap gap-1 mb-4">
                       <Badge variant="secondary" className="text-xs">
                         <Tag className="mr-1 h-3 w-3" />
-                        {listing.category}
+                        {listing.category?.name || 'Uncategorized'}
                       </Badge>
                       {listing.tags?.slice(0, 2).map((tag, index) => (
                         <Badge key={index} variant="outline" className="text-xs">

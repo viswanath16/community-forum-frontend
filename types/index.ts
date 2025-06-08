@@ -122,7 +122,7 @@ export interface MarketplaceListing {
   title: string;
   description: string;
   price: number;
-  category: string;
+  category: MarketplaceCategory;
   categoryName?: string;
   location: string;
   condition: 'new' | 'like-new' | 'good' | 'fair' | 'poor';
