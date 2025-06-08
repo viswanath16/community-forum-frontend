@@ -38,8 +38,30 @@ export default function Navbar() {
         setLoading(false);
       }
     };
-    
+
     loadUser();
+
+    // Listen for auth state changes
+    const handleAuthChange = (event: CustomEvent) => {
+      const userData = event.detail;
+      setUser(userData);
+      setLoading(false);
+    };
+
+    // Listen for storage changes (when user logs in/out in another tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'authToken' || e.key === 'currentUser') {
+        loadUser();
+      }
+    };
+
+    window.addEventListener('authStateChanged', handleAuthChange as EventListener);
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('authStateChanged', handleAuthChange as EventListener);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -103,7 +125,7 @@ export default function Navbar() {
               <div className="h-8 w-8 bg-muted rounded-full animate-pulse" />
             ) : user ? (
               <>
-                <Button variant="ghost\" size="icon\" asChild>
+                <Button variant="ghost" size="icon" asChild>
                   <Link href="/notifications">
                     <Bell className="h-5 w-5" />
                   </Link>

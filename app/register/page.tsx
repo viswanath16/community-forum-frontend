@@ -54,11 +54,8 @@ export default function RegisterPage() {
         const signInResult = await signIn(data.email, data.password);
         
         if (signInResult.success || signInResult.user) {
-          // Small delay to ensure state updates, then redirect
-          setTimeout(() => {
-            router.push('/');
-            router.refresh(); // Force a refresh to update server components
-          }, 100);
+          // Redirect to home page
+          router.push('/');
         } else {
           setError('Account created successfully, but failed to sign in automatically. Please try signing in manually.');
         }
@@ -91,7 +88,7 @@ export default function RegisterPage() {
         </CardHeader>
         <CardContent>
           {error && (
-            <Alert variant="destructive\" className="mb-4">
+            <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
