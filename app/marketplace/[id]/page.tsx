@@ -238,7 +238,7 @@ export default function ListingPage() {
             </Badge>
             <Badge variant="secondary">
               <Tag className="mr-1 h-3 w-3" />
-              {listing.category}
+              {typeof listing.category === 'object' ? listing.category.name : listing.category}
             </Badge>
             {listing.condition && (
               <Badge variant="outline">
