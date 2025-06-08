@@ -315,7 +315,7 @@ export default function MarketplacePage() {
                         />
                         {listing.status === 'sold' && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                            <Badge variant="destructive" className="text-lg">SOLD</Badge>
+                            <Badge variant="destructive\" className="text-lg">SOLD</Badge>
                           </div>
                         )}
                       </div>
