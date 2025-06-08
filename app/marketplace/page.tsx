@@ -246,14 +246,12 @@ export default function MarketplacePage() {
               Browse and sell items in our community marketplace
             </p>
           </div>
-          {user && (
-            <Button asChild>
-              <Link href="/marketplace/create">
-                <Plus className="mr-2 h-4 w-4" />
-                Create Listing
-              </Link>
-            </Button>
-          )}
+          <Button asChild>
+            <Link href="/marketplace/create">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Listing
+            </Link>
+          </Button>
         </div>
 
         {/* Search and Filters */}
@@ -359,18 +357,12 @@ export default function MarketplacePage() {
                 ? 'Try adjusting your search criteria or filters.'
                 : 'Be the first to create a listing in our marketplace.'}
             </CardDescription>
-            {user ? (
-              <Button asChild>
-                <Link href="/marketplace/create">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Listing
-                </Link>
-              </Button>
-            ) : (
-              <Button asChild>
-                <Link href="/login">Sign in to create a listing</Link>
-              </Button>
-            )}
+            <Button asChild>
+              <Link href="/marketplace/create">
+                <Plus className="mr-2 h-4 w-4" />
+                Create Listing
+              </Link>
+            </Button>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
