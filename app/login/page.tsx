@@ -9,7 +9,6 @@ import { useForm } from 'react-hook-form';
 import { signIn } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -40,8 +39,14 @@ export default function LoginPage() {
       setIsLoading(true);
       setError(null);
       
-      await signIn(data.email, data.password);
-      router.push('/');
+      const result = await signIn(data.email, data.password);
+      
+      if (result.success) {
+        // Force a page reload to update the navbar
+        window.location.href = '/';
+      } else {
+        setError(result.message || 'Failed to sign in. Please check your credentials and try again.');
+      }
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || 'Failed to sign in. Please check your credentials and try again.');

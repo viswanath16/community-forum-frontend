@@ -15,6 +15,12 @@ export const signUp = async (email: string, password: string, username?: string)
 export const signIn = async (email: string, password: string) => {
   try {
     const data = await authAPI.login(email, password);
+    
+    // Store user data in localStorage for immediate access
+    if (data.user && typeof window !== 'undefined') {
+      localStorage.setItem('currentUser', JSON.stringify(data.user));
+    }
+    
     return data;
   } catch (error: any) {
     throw new Error(error.message || 'Failed to sign in');
@@ -26,36 +32,83 @@ export const signOut = async () => {
     await authAPI.logout();
   } catch (error) {
     console.error('Error during logout:', error);
-    // Still remove token even if API call fails
+    // Still remove data even if API call fails
+  } finally {
+    // Always clear local storage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('currentUser');
+    }
   }
 };
 
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
+    // First check localStorage for immediate access
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('currentUser');
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+          // Convert to our User type format
+          return {
+            id: userData.id,
+            email: userData.email,
+            username: userData.username,
+            avatarUrl: userData.avatar || userData.avatarUrl,
+            createdAt: userData.createdAt,
+            role: userData.role || 'user',
+            rating: userData.rating,
+          };
+        } catch (parseError) {
+          console.error('Error parsing stored user data:', parseError);
+          localStorage.removeItem('currentUser');
+        }
+      }
+    }
+
     // Check if we have a token
     const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
     if (!token) return null;
 
-    // Get user profile from backend
-    const userData = await authAPI.refreshToken();
-    
-    if (!userData.user) return null;
+    // Try to refresh/validate token with backend
+    try {
+      const userData = await authAPI.refreshToken();
+      
+      if (!userData.user) return null;
 
-    // Convert backend user to our User type
-    return {
-      id: userData.user.id,
-      email: userData.user.email,
-      username: userData.user.username,
-      avatarUrl: userData.user.avatar,
-      createdAt: userData.user.createdAt,
-      role: userData.user.role,
-      rating: userData.user.rating,
-    };
+      // Convert backend user to our User type and store it
+      const user: User = {
+        id: userData.user.id,
+        email: userData.user.email,
+        username: userData.user.username,
+        avatarUrl: userData.user.avatar || userData.user.avatarUrl,
+        createdAt: userData.user.createdAt,
+        role: userData.user.role || 'user',
+        rating: userData.user.rating,
+      };
+
+      // Store updated user data
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('currentUser', JSON.stringify(userData.user));
+      }
+
+      return user;
+    } catch (refreshError) {
+      console.error('Error refreshing token:', refreshError);
+      // Clear invalid token and user data
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('currentUser');
+      }
+      return null;
+    }
   } catch (error) {
     console.error('Error getting current user:', error);
-    // Clear invalid token
+    // Clear invalid data
     if (typeof window !== 'undefined') {
       localStorage.removeItem('authToken');
+      localStorage.removeItem('currentUser');
     }
     return null;
   }

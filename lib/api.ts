@@ -78,71 +78,139 @@ const generateMockPost = (id: number, threadId: string): Post => ({
   updatedAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
 });
 
-// Authentication API
+// Authentication API - Mock implementation for testing
 export const authAPI = {
   register: async (email: string, password: string, username?: string) => {
-    const response = await api.post('/auth/register', {
+    // Mock registration - simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Simulate successful registration
+    const mockUser = {
+      id: Date.now().toString(),
       email,
-      password,
-      username
-    });
-    return response.data;
+      username: username || email.split('@')[0],
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+      createdAt: new Date().toISOString(),
+      role: 'user'
+    };
+    
+    const mockToken = `mock_token_${Date.now()}`;
+    
+    return {
+      success: true,
+      user: mockUser,
+      token: mockToken,
+      message: 'Registration successful'
+    };
   },
 
   login: async (email: string, password: string) => {
-    const response = await api.post('/auth/login', {
-      email,
-      password
-    });
+    // Mock login - simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Store token if provided
-    if (response.data.token && typeof window !== 'undefined') {
-      localStorage.setItem('authToken', response.data.token);
+    // Simulate successful login
+    const mockUser = {
+      id: Date.now().toString(),
+      email,
+      username: email.split('@')[0],
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+      createdAt: new Date().toISOString(),
+      role: 'user'
+    };
+    
+    const mockToken = `mock_token_${Date.now()}`;
+    
+    // Store token in localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('authToken', mockToken);
     }
     
-    return response.data;
+    return {
+      success: true,
+      user: mockUser,
+      token: mockToken,
+      message: 'Login successful'
+    };
   },
 
   logout: async () => {
-    const response = await api.post('/auth/logout');
+    // Mock logout - simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    // Remove token from storage
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('authToken');
-    }
-    
-    return response.data;
+    return {
+      success: true,
+      message: 'Logout successful'
+    };
   },
 
   refreshToken: async () => {
-    const response = await api.post('/auth/refresh');
+    // Mock token refresh
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    // Update token if provided
-    if (response.data.token && typeof window !== 'undefined') {
-      localStorage.setItem('authToken', response.data.token);
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    if (!token) {
+      throw new Error('No token found');
     }
     
-    return response.data;
+    // Get stored user or create mock user
+    let storedUser = null;
+    if (typeof window !== 'undefined') {
+      const userData = localStorage.getItem('currentUser');
+      if (userData) {
+        try {
+          storedUser = JSON.parse(userData);
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+    }
+    
+    const mockUser = storedUser || {
+      id: Date.now().toString(),
+      email: 'user@example.com',
+      username: 'user',
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=user`,
+      createdAt: new Date().toISOString(),
+      role: 'user'
+    };
+    
+    return {
+      success: true,
+      user: mockUser,
+      token: token
+    };
   },
 
   forgotPassword: async (email: string) => {
-    const response = await api.post('/auth/forgot-password', { email });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return {
+      success: true,
+      message: 'Password reset email sent'
+    };
   },
 
   resetPassword: async (token: string, password: string) => {
-    const response = await api.post('/auth/reset-password', { token, password });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return {
+      success: true,
+      message: 'Password reset successful'
+    };
   },
 
   verifyEmail: async (token: string) => {
-    const response = await api.post('/auth/verify-email', { token });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return {
+      success: true,
+      message: 'Email verified successfully'
+    };
   },
 
   resendVerification: async (email: string) => {
-    const response = await api.post('/auth/resend-verification', { email });
-    return response.data;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return {
+      success: true,
+      message: 'Verification email sent'
+    };
   }
 };
 

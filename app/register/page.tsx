@@ -16,6 +16,7 @@ import { MessageSquare, AlertCircle } from 'lucide-react';
 
 const registerSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
+  username: z.string().min(3, { message: 'Username must be at least 3 characters' }).optional(),
   password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
   confirmPassword: z.string().min(6, { message: 'Password must be at least 6 characters' }),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -34,6 +35,7 @@ export default function RegisterPage() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       email: '',
+      username: '',
       password: '',
       confirmPassword: '',
     },
@@ -44,13 +46,22 @@ export default function RegisterPage() {
       setIsLoading(true);
       setError(null);
       
-      // Sign up with Supabase
-      await signUp(data.email, data.password);
+      // Sign up with the backend
+      const signUpResult = await signUp(data.email, data.password, data.username);
       
-      // Auto sign in after successful registration
-      await signIn(data.email, data.password);
-      
-      router.push('/');
+      if (signUpResult.success) {
+        // Auto sign in after successful registration
+        const signInResult = await signIn(data.email, data.password);
+        
+        if (signInResult.success) {
+          // Force a page reload to update the navbar
+          window.location.href = '/';
+        } else {
+          setError('Account created successfully, but failed to sign in automatically. Please try signing in manually.');
+        }
+      } else {
+        setError(signUpResult.message || 'Failed to create account. Please try again.');
+      }
     } catch (err: any) {
       console.error('Registration error:', err);
       setError(err.message || 'Failed to create account. Please try again.');
@@ -72,7 +83,7 @@ export default function RegisterPage() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
           <CardDescription className="text-center">
-            Enter your email and create a password to sign up
+            Enter your details to create your account
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -95,6 +106,24 @@ export default function RegisterPage() {
                       <Input
                         placeholder="Enter your email"
                         type="email"
+                        {...field}
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Username (Optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Choose a username"
                         {...field}
                         disabled={isLoading}
                       />

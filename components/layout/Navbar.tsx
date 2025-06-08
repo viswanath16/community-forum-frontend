@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User as SupabaseUser } from '@supabase/supabase-js';
 import { Search, Menu, X, MessageSquare, Bell, User as UserIcon, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,24 +17,40 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { signOut, getCurrentUser } from '@/lib/auth';
 import { cn } from '@/lib/utils';
+import { User } from '@/types';
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     async function loadUser() {
       try {
+        setLoading(true);
         const currentUser = await getCurrentUser();
-        setUser(currentUser as SupabaseUser | null);
+        setUser(currentUser);
       } catch (error) {
         console.error('Error loading user:', error);
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
     }
     
     loadUser();
+
+    // Listen for storage changes (when user logs in/out in another tab)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'authToken' || e.key === 'currentUser') {
+        loadUser();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -97,7 +112,11 @@ export default function Navbar() {
 
           {/* User menu for desktop */}
           <div className="hidden md:flex items-center space-x-4">
-            {user ? (
+            {loading ? (
+              <div className="flex items-center space-x-2">
+                <div className="h-8 w-8 bg-muted rounded-full animate-pulse" />
+              </div>
+            ) : user ? (
               <>
                 <Button variant="ghost" size="icon" asChild>
                   <Link href="/notifications">
@@ -108,13 +127,24 @@ export default function Navbar() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.user_metadata?.avatar_url || ''} alt={user.email || ''} />
-                        <AvatarFallback>{user.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                        <AvatarImage src={user.avatarUrl || ''} alt={user.username || user.email || ''} />
+                        <AvatarFallback>
+                          {user.username?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
+                        </AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuLabel>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">
+                          {user.username || user.email}
+                        </p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {user.email}
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
                       <Link href="/profile">Profile</Link>
@@ -205,15 +235,26 @@ export default function Navbar() {
             </div>
 
             <div className="mt-4 pt-4 border-t border-border">
-              {user ? (
+              {loading ? (
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="h-10 w-10 bg-muted rounded-full animate-pulse" />
+                  <div className="space-y-1">
+                    <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+                    <div className="h-3 w-32 bg-muted rounded animate-pulse" />
+                  </div>
+                </div>
+              ) : user ? (
                 <>
                   <div className="flex items-center space-x-3 mb-3">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={user.user_metadata?.avatar_url || ''} alt={user.email || ''} />
-                      <AvatarFallback>{user.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                      <AvatarImage src={user.avatarUrl || ''} alt={user.username || user.email || ''} />
+                      <AvatarFallback>
+                        {user.username?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="text-sm font-medium">{user.email}</p>
+                      <p className="text-sm font-medium">{user.username || user.email}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
                     </div>
                   </div>
                   <div className="space-y-2">
