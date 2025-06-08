@@ -192,7 +192,7 @@ export default function ListingPage() {
                 />
                 {listing.status === 'sold' && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <Badge variant="destructive\" className="text-2xl">SOLD</Badge>
+                    <Badge variant="destructive" className="text-2xl">SOLD</Badge>
                   </div>
                 )}
               </div>
@@ -238,7 +238,7 @@ export default function ListingPage() {
             </Badge>
             <Badge variant="secondary">
               <Tag className="mr-1 h-3 w-3" />
-              {typeof listing.category === 'object' ? listing.category.name : listing.category}
+              {listing.category?.name || 'Uncategorized'}
             </Badge>
             {listing.condition && (
               <Badge variant="outline">
@@ -263,7 +263,7 @@ export default function ListingPage() {
               <div className="flex flex-wrap gap-2">
                 {listing.tags.map((tag, index) => (
                   <Badge key={index} variant="outline">
-                    {typeof tag === 'string' ? tag : (tag as any)?.name || 'Tag'}
+                    {tag}
                   </Badge>
                 ))}
               </div>

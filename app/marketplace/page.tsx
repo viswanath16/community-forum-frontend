@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getCurrentUser } from '@/lib/auth';
-import { marketplaceAPI } from '@/lib/api';
+import { fetchListings, fetchMarketplaceCategories } from '@/lib/api';
 import { formatDistanceToNow } from 'date-fns';
 import { Plus, Search, Filter, Heart, MapPin, DollarSign, Tag } from 'lucide-react';
 import { User, MarketplaceListing, MarketplaceCategory } from '@/types';
@@ -18,10 +18,8 @@ import { User, MarketplaceListing, MarketplaceCategory } from '@/types';
 export default function MarketplacePage() {
   const router = useRouter();
   const [listings, setListings] = useState<MarketplaceListing[]>([]);
-  const [filteredListings, setFilteredListings] = useState<MarketplaceListing[]>([]);
   const [categories, setCategories] = useState<MarketplaceCategory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,7 +27,6 @@ export default function MarketplacePage() {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [location, setLocation] = useState('');
-  const [selectedCondition, setSelectedCondition] = useState('all');
 
   useEffect(() => {
     const loadUser = async () => {
@@ -47,16 +44,15 @@ export default function MarketplacePage() {
         
         // Load categories and listings in parallel
         const [listingsData, categoriesData] = await Promise.all([
-          marketplaceAPI.getListings(),
-          marketplaceAPI.getCategories()
+          fetchListings(),
+          fetchMarketplaceCategories()
         ]);
         
         // Handle the case where data might be wrapped in an object
-        const processedListings = Array.isArray(listingsData) ? listingsData : (listingsData?.listings || listingsData?.data || []);
-        const processedCategories = Array.isArray(categoriesData) ? categoriesData : (categoriesData?.categories || categoriesData?.data || []);
+        const processedListings = Array.isArray(listingsData) ? listingsData : (listingsData?.listings || []);
+        const processedCategories = Array.isArray(categoriesData) ? categoriesData : (categoriesData?.categories || []);
         
         setListings(processedListings);
-        setFilteredListings(processedListings);
         setCategories(processedCategories);
         setError(null);
       } catch (err) {
@@ -67,13 +63,12 @@ export default function MarketplacePage() {
         if (errorMessage.includes('Listing not found') || errorMessage.includes('No listings found')) {
           // This is not really an error - just no listings available
           setListings([]);
-          setFilteredListings([]);
           setError(null);
           
           // Still try to load categories
           try {
-            const categoriesData = await marketplaceAPI.getCategories();
-            const processedCategories = Array.isArray(categoriesData) ? categoriesData : (categoriesData?.categories || categoriesData?.data || []);
+            const categoriesData = await fetchMarketplaceCategories();
+            const processedCategories = Array.isArray(categoriesData) ? categoriesData : (categoriesData?.categories || []);
             setCategories(processedCategories);
           } catch (categoryErr) {
             console.error('Error loading categories:', categoryErr);
@@ -91,104 +86,68 @@ export default function MarketplacePage() {
     loadData();
   }, []);
 
-  // Apply filters whenever filter values change
-  useEffect(() => {
-    applyFilters();
-  }, [searchQuery, selectedCategory, minPrice, maxPrice, location, selectedCondition, listings]);
-
-  const applyFilters = () => {
-    let filtered = [...listings];
-
-    // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(listing => 
-        listing.title.toLowerCase().includes(query) ||
-        listing.description.toLowerCase().includes(query) ||
-        listing.tags?.some(tag => {
-          const tagText = typeof tag === 'string' ? tag : (tag as any)?.name || '';
-          return tagText.toLowerCase().includes(query);
-        })
-      );
-    }
-
-    // Category filter
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(listing => {
-        const categoryId = typeof listing.category === 'object' ? listing.category.id : listing.category;
-        return categoryId === selectedCategory;
-      });
-    }
-
-    // Price filters
-    if (minPrice) {
-      const min = parseFloat(minPrice);
-      if (!isNaN(min)) {
-        filtered = filtered.filter(listing => listing.price >= min);
-      }
-    }
-
-    if (maxPrice) {
-      const max = parseFloat(maxPrice);
-      if (!isNaN(max)) {
-        filtered = filtered.filter(listing => listing.price <= max);
-      }
-    }
-
-    // Location filter
-    if (location.trim()) {
-      const locationQuery = location.toLowerCase();
-      filtered = filtered.filter(listing => 
-        listing.location.toLowerCase().includes(locationQuery)
-      );
-    }
-
-    // Condition filter
-    if (selectedCondition !== 'all') {
-      filtered = filtered.filter(listing => listing.condition === selectedCondition);
-    }
-
-    setFilteredListings(filtered);
-  };
-
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSearching(true);
     
     try {
-      // If we have backend search, use it
+      setLoading(true);
       const params = {
         search: searchQuery || undefined,
         category: selectedCategory === 'all' ? undefined : selectedCategory,
         minPrice: minPrice ? parseFloat(minPrice) : undefined,
         maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
         location: location || undefined,
-        condition: selectedCondition === 'all' ? undefined : selectedCondition,
       };
       
-      const data = await marketplaceAPI.getListings(params);
-      const processedListings = Array.isArray(data) ? data : (data?.listings || data?.data || []);
+      const data = await fetchListings(params);
+      const processedListings = Array.isArray(data) ? data : (data?.listings || []);
       setListings(processedListings);
-      setFilteredListings(processedListings);
       setError(null);
     } catch (err) {
       console.error('Error searching listings:', err);
       
-      // Fallback to client-side filtering if backend search fails
-      applyFilters();
+      // Check if the error is specifically about no listings being found
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.includes('Listing not found') || errorMessage.includes('No listings found')) {
+        // This is not really an error - just no listings match the search
+        setListings([]);
+        setError(null);
+      } else {
+        setError('Failed to search listings. Please try again.');
+      }
     } finally {
-      setSearching(false);
+      setLoading(false);
     }
   };
 
-  const clearFilters = () => {
+  const clearFilters = async () => {
     setSearchQuery('');
     setSelectedCategory('all');
     setMinPrice('');
     setMaxPrice('');
     setLocation('');
-    setSelectedCondition('all');
-    setFilteredListings(listings);
+    
+    try {
+      setLoading(true);
+      const data = await fetchListings();
+      const processedListings = Array.isArray(data) ? data : (data?.listings || []);
+      setListings(processedListings);
+      setError(null);
+    } catch (err) {
+      console.error('Error loading listings:', err);
+      
+      // Check if the error is specifically about no listings being found
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.includes('Listing not found') || errorMessage.includes('No listings found')) {
+        // This is not really an error - just no listings available
+        setListings([]);
+        setError(null);
+      } else {
+        setError('Failed to load listings. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Helper function to get category name by ID
@@ -302,7 +261,7 @@ export default function MarketplacePage() {
                 />
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   type="number"
                   placeholder="Min price"
@@ -315,25 +274,11 @@ export default function MarketplacePage() {
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
                 />
-                
-                <Select value={selectedCondition} onValueChange={setSelectedCondition}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Condition" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Conditions</SelectItem>
-                    <SelectItem value="new">New</SelectItem>
-                    <SelectItem value="like-new">Like New</SelectItem>
-                    <SelectItem value="good">Good</SelectItem>
-                    <SelectItem value="fair">Fair</SelectItem>
-                    <SelectItem value="poor">Poor</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
               
               <div className="flex gap-2">
-                <Button type="submit" disabled={searching}>
-                  {searching ? 'Searching...' : 'Search'}
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Searching...' : 'Search'}
                 </Button>
                 <Button type="button" variant="outline" onClick={clearFilters}>
                   Clear Filters
@@ -343,19 +288,11 @@ export default function MarketplacePage() {
           </CardContent>
         </Card>
 
-        {/* Results count */}
-        <div className="mb-4">
-          <p className="text-sm text-muted-foreground">
-            Showing {filteredListings.length} of {listings.length} listings
-            {searchQuery && ` for "${searchQuery}"`}
-          </p>
-        </div>
-
-        {filteredListings.length === 0 ? (
+        {listings.length === 0 ? (
           <Card className="p-8 text-center">
             <CardTitle className="mb-2">No listings found</CardTitle>
             <CardDescription className="mb-6">
-              {searchQuery || selectedCategory !== 'all' || minPrice || maxPrice || location || selectedCondition !== 'all'
+              {searchQuery || selectedCategory !== 'all' || minPrice || maxPrice || location
                 ? 'Try adjusting your search criteria or filters.'
                 : 'Be the first to create a listing in our marketplace.'}
             </CardDescription>
@@ -374,7 +311,7 @@ export default function MarketplacePage() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredListings.map((listing) => (
+            {listings.map((listing) => (
               <Link key={listing.id} href={`/marketplace/${listing.id}`}>
                 <Card className="hover:shadow-md transition-shadow h-full group">
                   <CardHeader className="pb-2">
@@ -387,7 +324,7 @@ export default function MarketplacePage() {
                         />
                         {listing.status === 'sold' && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                            <Badge variant="destructive\" className="text-lg">SOLD</Badge>
+                            <Badge variant="destructive" className="text-lg">SOLD</Badge>
                           </div>
                         )}
                       </div>
@@ -413,11 +350,11 @@ export default function MarketplacePage() {
                     <div className="flex flex-wrap gap-1 mb-4">
                       <Badge variant="secondary" className="text-xs">
                         <Tag className="mr-1 h-3 w-3" />
-                        {typeof listing.category === 'object' ? listing.category.name : listing.category || 'Uncategorized'}
+                        {listing.category?.name || 'Uncategorized'}
                       </Badge>
                       {listing.tags?.slice(0, 2).map((tag, index) => (
                         <Badge key={index} variant="outline" className="text-xs">
-                          {typeof tag === 'string' ? tag : (tag as any)?.name || 'Tag'}
+                          {tag}
                         </Badge>
                       ))}
                     </div>
