@@ -49,8 +49,18 @@ export default function Navbar() {
       }
     };
 
+    // Listen for custom events (when user logs in/out in same tab)
+    const handleAuthChange = () => {
+      loadUser();
+    };
+
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('authStateChanged', handleAuthChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('authStateChanged', handleAuthChange);
+    };
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -65,6 +75,10 @@ export default function Navbar() {
     try {
       await signOut();
       setUser(null);
+      
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new Event('authStateChanged'));
+      
       router.push('/');
     } catch (error) {
       console.error('Error signing out:', error);

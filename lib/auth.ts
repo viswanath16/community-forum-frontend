@@ -19,6 +19,7 @@ export const signIn = async (email: string, password: string) => {
     // Store user data in localStorage for immediate access
     if (data.user && typeof window !== 'undefined') {
       localStorage.setItem('currentUser', JSON.stringify(data.user));
+      localStorage.setItem('authToken', data.token);
     }
     
     return data;
@@ -44,14 +45,18 @@ export const signOut = async () => {
 
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
-    // First check localStorage for immediate access
+    // Check if we have a token first
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    if (!token) return null;
+
+    // Get stored user data for immediate access
     if (typeof window !== 'undefined') {
       const storedUser = localStorage.getItem('currentUser');
       if (storedUser) {
         try {
           const userData = JSON.parse(storedUser);
           // Convert to our User type format
-          return {
+          const user: User = {
             id: userData.id,
             email: userData.email,
             username: userData.username,
@@ -60,22 +65,37 @@ export const getCurrentUser = async (): Promise<User | null> => {
             role: userData.role || 'user',
             rating: userData.rating,
           };
+          
+          // Validate token in background (don't wait for it)
+          authAPI.refreshToken().catch(() => {
+            // If token is invalid, clear storage
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('authToken');
+              localStorage.removeItem('currentUser');
+            }
+          });
+          
+          return user;
         } catch (parseError) {
           console.error('Error parsing stored user data:', parseError);
           localStorage.removeItem('currentUser');
+          localStorage.removeItem('authToken');
         }
       }
     }
 
-    // Check if we have a token
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-    if (!token) return null;
-
-    // Try to refresh/validate token with backend
+    // If no stored user, try to refresh/validate token with backend
     try {
       const userData = await authAPI.refreshToken();
       
-      if (!userData.user) return null;
+      if (!userData.user) {
+        // Clear invalid data
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('currentUser');
+        }
+        return null;
+      }
 
       // Convert backend user to our User type and store it
       const user: User = {

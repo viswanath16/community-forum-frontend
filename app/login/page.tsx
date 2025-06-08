@@ -42,8 +42,14 @@ export default function LoginPage() {
       const result = await signIn(data.email, data.password);
       
       if (result.success) {
-        // Force a page reload to update the navbar
-        window.location.href = '/';
+        // Dispatch custom event to notify navbar
+        window.dispatchEvent(new Event('authStateChanged'));
+        
+        // Small delay to ensure state updates, then redirect
+        setTimeout(() => {
+          router.push('/');
+          router.refresh(); // Force a refresh to update server components
+        }, 100);
       } else {
         setError(result.message || 'Failed to sign in. Please check your credentials and try again.');
       }
@@ -73,7 +79,7 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           {error && (
-            <Alert variant="destructive\" className="mb-4">
+            <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
