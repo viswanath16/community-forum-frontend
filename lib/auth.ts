@@ -1,8 +1,6 @@
-import { supabase } from './supabase';
 import { authAPI } from './api';
 import { User } from '@/types';
 
-// Use backend authentication instead of Supabase for main auth flow
 export const signUp = async (email: string, password: string, username?: string) => {
   try {
     const data = await authAPI.register(email, password, username);
@@ -16,13 +14,13 @@ export const signIn = async (email: string, password: string) => {
   try {
     const data = await authAPI.login(email, password);
     
-    // Store user data in localStorage for immediate access
-    if (data.user && typeof window !== 'undefined') {
-      localStorage.setItem('currentUser', JSON.stringify(data.user));
+    if (data.user && data.token) {
+      // Store in localStorage
       localStorage.setItem('authToken', data.token);
+      localStorage.setItem('currentUser', JSON.stringify(data.user));
       
-      // Dispatch event to notify components
-      window.dispatchEvent(new CustomEvent('authStateChanged', { detail: data.user }));
+      // Force page reload to update navbar
+      window.location.reload();
     }
     
     return data;
@@ -35,101 +33,34 @@ export const signOut = async () => {
   try {
     await authAPI.logout();
   } catch (error) {
-    console.error('Error during logout:', error);
-    // Still remove data even if API call fails
+    console.error('Logout error:', error);
   } finally {
-    // Always clear local storage
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('currentUser');
-      
-      // Dispatch event to notify components
-      window.dispatchEvent(new CustomEvent('authStateChanged', { detail: null }));
-    }
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+    window.location.href = '/';
   }
 };
 
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
-    // Check if we have a token first
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-    if (!token) return null;
-
-    // Get stored user data for immediate access
-    if (typeof window !== 'undefined') {
-      const storedUser = localStorage.getItem('currentUser');
-      if (storedUser) {
-        try {
-          const userData = JSON.parse(storedUser);
-          // Convert to our User type format
-          const user: User = {
-            id: userData.id,
-            email: userData.email,
-            username: userData.username,
-            avatarUrl: userData.avatar || userData.avatarUrl,
-            createdAt: userData.createdAt,
-            role: userData.role || 'user',
-            rating: userData.rating,
-          };
-          
-          return user;
-        } catch (parseError) {
-          console.error('Error parsing stored user data:', parseError);
-          localStorage.removeItem('currentUser');
-          localStorage.removeItem('authToken');
-        }
-      }
-    }
-
-    return null;
+    const token = localStorage.getItem('authToken');
+    const userData = localStorage.getItem('currentUser');
+    
+    if (!token || !userData) return null;
+    
+    const user = JSON.parse(userData);
+    return {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      avatarUrl: user.avatar || user.avatarUrl,
+      createdAt: user.createdAt,
+      role: user.role || 'user',
+      rating: user.rating,
+    };
   } catch (error) {
-    console.error('Error getting current user:', error);
-    // Clear invalid data
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('currentUser');
-    }
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
     return null;
-  }
-};
-
-export const getSession = async () => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-  return token ? { access_token: token } : null;
-};
-
-export const forgotPassword = async (email: string) => {
-  try {
-    const data = await authAPI.forgotPassword(email);
-    return data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || error.message || 'Failed to send reset email');
-  }
-};
-
-export const resetPassword = async (token: string, password: string) => {
-  try {
-    const data = await authAPI.resetPassword(token, password);
-    return data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || error.message || 'Failed to reset password');
-  }
-};
-
-export const verifyEmail = async (token: string) => {
-  try {
-    const data = await authAPI.verifyEmail(token);
-    return data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || error.message || 'Failed to verify email');
-  }
-};
-
-export const resendVerification = async (email: string) => {
-  try {
-    const data = await authAPI.resendVerification(email);
-    return data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || error.message || 'Failed to resend verification');
   }
 };

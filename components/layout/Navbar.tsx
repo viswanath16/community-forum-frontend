@@ -27,9 +27,8 @@ export default function Navbar() {
   const router = useRouter();
 
   useEffect(() => {
-    async function loadUser() {
+    const loadUser = async () => {
       try {
-        setLoading(true);
         const currentUser = await getCurrentUser();
         setUser(currentUser);
       } catch (error) {
@@ -38,45 +37,9 @@ export default function Navbar() {
       } finally {
         setLoading(false);
       }
-    }
+    };
     
     loadUser();
-
-    // Listen for custom auth state changes
-    const handleAuthChange = (event: CustomEvent) => {
-      const userData = event.detail;
-      if (userData) {
-        // Convert backend user data to our User type
-        const user: User = {
-          id: userData.id,
-          email: userData.email,
-          username: userData.username,
-          avatarUrl: userData.avatar || userData.avatarUrl,
-          createdAt: userData.createdAt,
-          role: userData.role || 'user',
-          rating: userData.rating,
-        };
-        setUser(user);
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
-    };
-
-    // Listen for storage changes (when user logs in/out in another tab)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'authToken' || e.key === 'currentUser') {
-        loadUser();
-      }
-    };
-
-    window.addEventListener('authStateChanged', handleAuthChange as EventListener);
-    window.addEventListener('storage', handleStorageChange);
-    
-    return () => {
-      window.removeEventListener('authStateChanged', handleAuthChange as EventListener);
-      window.removeEventListener('storage', handleStorageChange);
-    };
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -90,8 +53,6 @@ export default function Navbar() {
   const handleSignOut = async () => {
     try {
       await signOut();
-      setUser(null);
-      router.push('/');
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -139,9 +100,7 @@ export default function Navbar() {
           {/* User menu for desktop */}
           <div className="hidden md:flex items-center space-x-4">
             {loading ? (
-              <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 bg-muted rounded-full animate-pulse" />
-              </div>
+              <div className="h-8 w-8 bg-muted rounded-full animate-pulse" />
             ) : user ? (
               <>
                 <Button variant="ghost" size="icon" asChild>
