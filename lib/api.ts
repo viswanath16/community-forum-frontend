@@ -78,139 +78,75 @@ const generateMockPost = (id: number, threadId: string): Post => ({
   updatedAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
 });
 
-// Authentication API - Mock implementation for testing
+// Authentication API - Real backend implementation
 export const authAPI = {
   register: async (email: string, password: string, username?: string) => {
-    // Mock registration - simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Simulate successful registration
-    const mockUser = {
-      id: Date.now().toString(),
+    const response = await api.post('/auth/register', {
       email,
-      username: username || email.split('@')[0],
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-      createdAt: new Date().toISOString(),
-      role: 'user'
-    };
-    
-    const mockToken = `mock_token_${Date.now()}`;
-    
-    return {
-      success: true,
-      user: mockUser,
-      token: mockToken,
-      message: 'Registration successful'
-    };
+      password,
+      username: username || email.split('@')[0]
+    });
+    return response.data;
   },
 
   login: async (email: string, password: string) => {
-    // Mock login - simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Simulate successful login
-    const mockUser = {
-      id: Date.now().toString(),
+    const response = await api.post('/auth/login', {
       email,
-      username: email.split('@')[0],
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-      createdAt: new Date().toISOString(),
-      role: 'user'
-    };
+      password
+    });
     
-    const mockToken = `mock_token_${Date.now()}`;
+    const data = response.data;
     
-    // Store token in localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('authToken', mockToken);
-    }
-    
-    return {
-      success: true,
-      user: mockUser,
-      token: mockToken,
-      message: 'Login successful'
-    };
-  },
-
-  logout: async () => {
-    // Mock logout - simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    return {
-      success: true,
-      message: 'Logout successful'
-    };
-  },
-
-  refreshToken: async () => {
-    // Mock token refresh
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-    if (!token) {
-      throw new Error('No token found');
-    }
-    
-    // Get stored user or create mock user
-    let storedUser = null;
-    if (typeof window !== 'undefined') {
-      const userData = localStorage.getItem('currentUser');
-      if (userData) {
-        try {
-          storedUser = JSON.parse(userData);
-        } catch (e) {
-          // Ignore parse errors
-        }
+    // Store token and user data in localStorage
+    if (data.token && typeof window !== 'undefined') {
+      localStorage.setItem('authToken', data.token);
+      if (data.user) {
+        localStorage.setItem('currentUser', JSON.stringify(data.user));
       }
     }
     
-    const mockUser = storedUser || {
-      id: Date.now().toString(),
-      email: 'user@example.com',
-      username: 'user',
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=user`,
-      createdAt: new Date().toISOString(),
-      role: 'user'
-    };
+    return data;
+  },
+
+  logout: async () => {
+    const response = await api.post('/auth/logout');
+    return response.data;
+  },
+
+  refreshToken: async () => {
+    const response = await api.post('/auth/refresh');
     
-    return {
-      success: true,
-      user: mockUser,
-      token: token
-    };
+    const data = response.data;
+    
+    // Update stored token and user data
+    if (data.token && typeof window !== 'undefined') {
+      localStorage.setItem('authToken', data.token);
+      if (data.user) {
+        localStorage.setItem('currentUser', JSON.stringify(data.user));
+      }
+    }
+    
+    return data;
   },
 
   forgotPassword: async (email: string) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return {
-      success: true,
-      message: 'Password reset email sent'
-    };
+    const response = await api.post('/auth/forgot-password', { email });
+    return response.data;
   },
 
   resetPassword: async (token: string, password: string) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return {
-      success: true,
-      message: 'Password reset successful'
-    };
+    const response = await api.post('/auth/reset-password', { token, password });
+    return response.data;
   },
 
   verifyEmail: async (token: string) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return {
-      success: true,
-      message: 'Email verified successfully'
-    };
+    const response = await api.post('/auth/verify-email', { token });
+    return response.data;
   },
 
   resendVerification: async (email: string) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return {
-      success: true,
-      message: 'Verification email sent'
-    };
+    const response = await api.post('/auth/resend-verification', { email });
+    return response.data;
   }
 };
 
@@ -555,7 +491,7 @@ export const notificationsAPI = {
   }
 };
 
-// Marketplace API - REVERTED TO ORIGINAL BACKEND IMPLEMENTATION
+// Marketplace API - Real backend implementation
 export const marketplaceAPI = {
   getListings: async (params?: any) => {
     const response = await api.get('/marketplace', { params });
