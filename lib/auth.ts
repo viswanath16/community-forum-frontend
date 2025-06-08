@@ -1,59 +1,103 @@
 import { supabase } from './supabase';
+import { authAPI } from './api';
 import { User } from '@/types';
 
-export const signUp = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
-  
-  if (error) throw error;
-  return data;
+// Use backend authentication instead of Supabase for main auth flow
+export const signUp = async (email: string, password: string, username?: string) => {
+  try {
+    const data = await authAPI.register(email, password, username);
+    return data;
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to create account');
+  }
 };
 
 export const signIn = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  
-  if (error) throw error;
-  
-  // Store the session token for API requests
-  if (data.session?.access_token) {
-    localStorage.setItem('authToken', data.session.access_token);
+  try {
+    const data = await authAPI.login(email, password);
+    return data;
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to sign in');
   }
-  
-  return data;
 };
 
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  
-  // Remove the token from storage
-  localStorage.removeItem('authToken');
-  
-  if (error) throw error;
+  try {
+    await authAPI.logout();
+  } catch (error) {
+    console.error('Error during logout:', error);
+    // Still remove token even if API call fails
+  }
 };
 
 export const getCurrentUser = async (): Promise<User | null> => {
-  const { data } = await supabase.auth.getUser();
-  
-  if (!data.user) return null;
-  
-  // Convert Supabase User to our custom User type
-  return {
-    id: data.user.id,
-    email: data.user.email || '',
-    username: data.user.user_metadata?.username,
-    avatarUrl: data.user.user_metadata?.avatar_url,
-    createdAt: data.user.created_at,
-    role: data.user.user_metadata?.role,
-    rating: data.user.user_metadata?.rating,
-  };
+  try {
+    // Check if we have a token
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    if (!token) return null;
+
+    // Get user profile from backend
+    const userData = await authAPI.refreshToken();
+    
+    if (!userData.user) return null;
+
+    // Convert backend user to our User type
+    return {
+      id: userData.user.id,
+      email: userData.user.email,
+      username: userData.user.username,
+      avatarUrl: userData.user.avatar,
+      createdAt: userData.user.createdAt,
+      role: userData.user.role,
+      rating: userData.user.rating,
+    };
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    // Clear invalid token
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('authToken');
+    }
+    return null;
+  }
 };
 
 export const getSession = async () => {
-  const { data } = await supabase.auth.getSession();
-  return data.session;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+  return token ? { access_token: token } : null;
+};
+
+export const forgotPassword = async (email: string) => {
+  try {
+    const data = await authAPI.forgotPassword(email);
+    return data;
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to send reset email');
+  }
+};
+
+export const resetPassword = async (token: string, password: string) => {
+  try {
+    const data = await authAPI.resetPassword(token, password);
+    return data;
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to reset password');
+  }
+};
+
+export const verifyEmail = async (token: string) => {
+  try {
+    const data = await authAPI.verifyEmail(token);
+    return data;
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to verify email');
+  }
+};
+
+export const resendVerification = async (email: string) => {
+  try {
+    const data = await authAPI.resendVerification(email);
+    return data;
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to resend verification');
+  }
 };

@@ -1,13 +1,13 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://community-forum-backend.netlify.app/api';
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 second timeout
+  timeout: 30000, // 30 second timeout for better reliability
 });
 
 // Add auth token to requests when available
@@ -25,661 +25,596 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === 401) {
+      // Clear invalid token
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('authToken');
+      }
+    }
+    
     // Handle HTML error responses (like 404 pages) more gracefully
     if (error.response?.data && typeof error.response.data === 'string' && error.response.data.startsWith('<!DOCTYPE html>')) {
       console.error(`API Error: Received HTML error page (${error.response.status} ${error.response.statusText})`);
-    } else {
-      console.error('API Error:', error.response?.data || error.message);
+      throw new Error(`Server error: ${error.response.status} ${error.response.statusText}`);
     }
-    return Promise.reject(error);
+    
+    // Extract error message from response
+    const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
+    throw new Error(errorMessage);
   }
 );
 
-// Mock data for development when backend is not available
-const mockCategories = [
-  {
-    id: '1',
-    name: 'General Discussion',
-    slug: 'general-discussion',
-    description: 'General topics and community discussions',
-    threadCount: 15,
-    postCount: 142,
-    parentId: null,
-    subcategories: []
-  },
-  {
-    id: '2',
-    name: 'Technology',
-    slug: 'technology',
-    description: 'Discussions about technology, programming, and innovation',
-    threadCount: 23,
-    postCount: 189,
-    parentId: null,
-    subcategories: []
-  },
-  {
-    id: '3',
-    name: 'Marketplace',
-    slug: 'marketplace',
-    description: 'Buy, sell, and trade items with community members',
-    threadCount: 8,
-    postCount: 45,
-    parentId: null,
-    subcategories: []
-  },
-  {
-    id: '4',
-    name: 'Help & Support',
-    slug: 'help-support',
-    description: 'Get help and support from the community',
-    threadCount: 12,
-    postCount: 78,
-    parentId: null,
-    subcategories: []
-  },
-  {
-    id: '5',
-    name: 'Off Topic',
-    slug: 'off-topic',
-    description: 'Casual conversations and off-topic discussions',
-    threadCount: 19,
-    postCount: 156,
-    parentId: null,
-    subcategories: []
-  },
-  {
-    id: '6',
-    name: 'Announcements',
-    slug: 'announcements',
-    description: 'Official announcements and news',
-    threadCount: 5,
-    postCount: 23,
-    parentId: null,
-    subcategories: []
-  }
-];
-
-const mockThreads = [
-  {
-    id: '1',
-    title: 'Welcome to the Community Forum!',
-    content: 'Welcome everyone to our new community forum. Feel free to introduce yourself and start discussions.',
-    categoryId: '1',
-    authorId: 'admin',
-    author: { username: 'Admin', avatar: null },
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    postCount: 5,
-    viewCount: 42,
-    isPinned: true,
-    isLocked: false
-  },
-  {
-    id: '2',
-    title: 'Latest Tech Trends 2025',
-    content: 'What are your thoughts on the latest technology trends this year?',
-    categoryId: '2',
-    authorId: 'user1',
-    author: { username: 'TechEnthusiast', avatar: null },
-    createdAt: new Date(Date.now() - 86400000).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000).toISOString(),
-    postCount: 12,
-    viewCount: 89,
-    isPinned: false,
-    isLocked: false
-  }
-];
-
-// Categories API
-export const fetchCategories = async () => {
-  try {
-    const response = await api.get('/categories');
-    console.log('Categories API response:', response.data);
-    
-    // Handle the actual backend response structure
-    // The backend likely returns { success: true, data: [...] } or similar
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
-    }
-    
-    // Handle direct array response
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-    
-    // Handle nested categories property
-    if (response.data?.categories) {
-      return response.data.categories;
-    }
-    
-    // Fallback to the response data itself
-    return response.data || [];
-  } catch (error) {
-    console.warn('Backend not available, using mock data for categories');
-    // Return mock data when backend is not available
-    return mockCategories;
-  }
-};
-
-export const fetchCategory = async (slug: string) => {
-  try {
-    const response = await api.get(`/categories/${slug}`);
-    console.log('Category API response:', response.data);
-    
-    // Handle the actual backend response structure
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
-    }
-    
-    if (response.data?.category) {
-      return response.data.category;
-    }
-    
+// Authentication API
+export const authAPI = {
+  register: async (email: string, password: string, username?: string) => {
+    const response = await api.post('/auth/register', { email, password, username });
     return response.data;
-  } catch (error) {
-    console.warn('Backend not available, using mock data for category');
-    // Return mock category data
-    const category = mockCategories.find(cat => cat.slug === slug);
-    if (!category) {
-      throw new Error('Category not found');
-    }
-    return category;
-  }
-};
+  },
 
-// Threads API
-export const fetchThreads = async (categoryId?: string) => {
-  try {
-    const url = categoryId ? `/threads?categoryId=${categoryId}` : '/threads';
-    const response = await api.get(url);
-    console.log('Threads API response:', response.data);
-    
-    // Handle the actual backend response structure
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
+  login: async (email: string, password: string) => {
+    const response = await api.post('/auth/login', { email, password });
+    if (response.data.token) {
+      localStorage.setItem('authToken', response.data.token);
     }
-    
-    // Handle direct array response
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-    
-    // Handle nested threads property
-    if (response.data?.threads) {
-      return response.data.threads;
-    }
-    
-    return response.data || [];
-  } catch (error) {
-    console.warn('Backend not available, using mock data for threads');
-    // Return mock threads, filtered by category if specified
-    let threads = mockThreads;
-    if (categoryId) {
-      threads = mockThreads.filter(thread => thread.categoryId === categoryId);
-    }
-    return threads;
-  }
-};
-
-export const fetchThread = async (id: string) => {
-  try {
-    const response = await api.get(`/threads/${id}`);
-    console.log('Thread API response:', response.data);
-    
-    // Handle the actual backend response structure
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
-    }
-    
-    if (response.data?.thread) {
-      return response.data.thread;
-    }
-    
     return response.data;
-  } catch (error) {
-    console.warn('Backend not available, using mock data for thread');
-    const thread = mockThreads.find(t => t.id === id);
-    if (!thread) {
-      throw new Error('Thread not found');
-    }
-    return thread;
-  }
-};
+  },
 
-export const createThread = async (data: {
-  title: string;
-  content: string;
-  categoryId: string;
-}) => {
-  try {
-    const response = await api.post('/threads', data);
-    console.log('Create thread API response:', response.data);
-    
-    // Handle the actual backend response structure
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
+  logout: async () => {
+    try {
+      await api.post('/auth/logout');
+    } finally {
+      localStorage.removeItem('authToken');
     }
-    
-    if (response.data?.thread) {
-      return response.data.thread;
+  },
+
+  refreshToken: async () => {
+    const response = await api.post('/auth/refresh');
+    if (response.data.token) {
+      localStorage.setItem('authToken', response.data.token);
     }
-    
     return response.data;
-  } catch (error) {
-    console.warn('Backend not available, creating mock thread');
-    // Create a mock thread when backend is not available
-    const newThread = {
-      id: Math.random().toString(36).substr(2, 9),
-      title: data.title,
-      content: data.content,
-      categoryId: data.categoryId,
-      authorId: 'current-user',
-      author: { username: 'CurrentUser', avatar: null },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      postCount: 0,
-      viewCount: 0,
-      isPinned: false,
-      isLocked: false
-    };
-    
-    // Add to mock threads array for future fetches
-    mockThreads.push(newThread);
-    
-    return newThread;
-  }
-};
+  },
 
-// Posts API
-export const fetchPosts = async (threadId: string) => {
-  try {
-    const response = await api.get(`/threads/${threadId}/posts`);
-    console.log('Posts API response:', response.data);
-    
-    // Handle the actual backend response structure
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
-    }
-    
-    // Handle direct array response
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-    
-    // Handle nested posts property
-    if (response.data?.posts) {
-      return response.data.posts;
-    }
-    
-    return response.data || [];
-  } catch (error) {
-    console.warn('Backend not available, returning empty posts');
-    return [];
-  }
-};
-
-export const createPost = async (data: {
-  content: string;
-  threadId: string;
-}) => {
-  try {
-    const response = await api.post('/posts', data);
-    console.log('Create post API response:', response.data);
-    
-    // Handle the actual backend response structure
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
-    }
-    
-    if (response.data?.post) {
-      return response.data.post;
-    }
-    
+  forgotPassword: async (email: string) => {
+    const response = await api.post('/auth/forgot-password', { email });
     return response.data;
-  } catch (error) {
-    console.error('Error creating post:', error);
-    throw error;
+  },
+
+  resetPassword: async (token: string, password: string) => {
+    const response = await api.post('/auth/reset-password', { token, password });
+    return response.data;
+  },
+
+  verifyEmail: async (token: string) => {
+    const response = await api.post('/auth/verify-email', { token });
+    return response.data;
+  },
+
+  resendVerification: async (email: string) => {
+    const response = await api.post('/auth/resend-verification', { email });
+    return response.data;
   }
 };
 
 // Users API
-export const fetchUserProfile = async (userId: string) => {
-  try {
-    const response = await api.get(`/users/${userId}`);
-    console.log('User profile API response:', response.data);
-    
-    // Handle the actual backend response structure
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
-    }
-    
-    if (response.data?.user) {
-      return response.data.user;
-    }
-    
+export const usersAPI = {
+  getProfile: async (userId?: string) => {
+    const endpoint = userId ? `/users/${userId}` : '/users/profile';
+    const response = await api.get(endpoint);
     return response.data;
-  } catch (error) {
-    console.error('Error fetching user profile:', error);
-    throw error;
+  },
+
+  updateProfile: async (data: {
+    username?: string;
+    bio?: string;
+    location?: string;
+    website?: string;
+    avatar?: string;
+  }) => {
+    const response = await api.put('/users/profile', data);
+    return response.data;
+  },
+
+  uploadAvatar: async (file: File) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const response = await api.post('/users/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+
+  getUsers: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: string;
+  }) => {
+    const response = await api.get('/users', { params });
+    return response.data;
+  },
+
+  updateUserRole: async (userId: string, role: string) => {
+    const response = await api.put(`/users/${userId}/role`, { role });
+    return response.data;
+  },
+
+  banUser: async (userId: string, reason?: string) => {
+    const response = await api.post(`/users/${userId}/ban`, { reason });
+    return response.data;
+  },
+
+  unbanUser: async (userId: string) => {
+    const response = await api.delete(`/users/${userId}/ban`);
+    return response.data;
   }
 };
 
-export const updateUserProfile = async (userId: string, data: any) => {
-  try {
-    const response = await api.put(`/users/${userId}`, data);
-    console.log('Update user profile API response:', response.data);
-    
-    // Handle the actual backend response structure
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
-    }
-    
-    if (response.data?.user) {
-      return response.data.user;
-    }
-    
+// Categories API
+export const categoriesAPI = {
+  getAll: async () => {
+    const response = await api.get('/categories');
     return response.data;
-  } catch (error) {
-    console.error('Error updating user profile:', error);
-    throw error;
+  },
+
+  getBySlug: async (slug: string) => {
+    const response = await api.get(`/categories/${slug}`);
+    return response.data;
+  },
+
+  create: async (data: {
+    name: string;
+    description: string;
+    slug: string;
+    parentId?: string;
+    color?: string;
+    icon?: string;
+  }) => {
+    const response = await api.post('/categories', data);
+    return response.data;
+  },
+
+  update: async (id: string, data: {
+    name?: string;
+    description?: string;
+    slug?: string;
+    parentId?: string;
+    color?: string;
+    icon?: string;
+  }) => {
+    const response = await api.put(`/categories/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: string) => {
+    const response = await api.delete(`/categories/${id}`);
+    return response.data;
+  },
+
+  reorder: async (categoryIds: string[]) => {
+    const response = await api.put('/categories/reorder', { categoryIds });
+    return response.data;
+  }
+};
+
+// Threads API
+export const threadsAPI = {
+  getAll: async (params?: {
+    categoryId?: string;
+    page?: number;
+    limit?: number;
+    sort?: 'latest' | 'popular' | 'oldest';
+    search?: string;
+  }) => {
+    const response = await api.get('/threads', { params });
+    return response.data;
+  },
+
+  getById: async (id: string) => {
+    const response = await api.get(`/threads/${id}`);
+    return response.data;
+  },
+
+  create: async (data: {
+    title: string;
+    content: string;
+    categoryId: string;
+    tags?: string[];
+    isPinned?: boolean;
+  }) => {
+    const response = await api.post('/threads', data);
+    return response.data;
+  },
+
+  update: async (id: string, data: {
+    title?: string;
+    content?: string;
+    categoryId?: string;
+    tags?: string[];
+    isPinned?: boolean;
+    isLocked?: boolean;
+  }) => {
+    const response = await api.put(`/threads/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: string) => {
+    const response = await api.delete(`/threads/${id}`);
+    return response.data;
+  },
+
+  pin: async (id: string) => {
+    const response = await api.post(`/threads/${id}/pin`);
+    return response.data;
+  },
+
+  unpin: async (id: string) => {
+    const response = await api.delete(`/threads/${id}/pin`);
+    return response.data;
+  },
+
+  lock: async (id: string) => {
+    const response = await api.post(`/threads/${id}/lock`);
+    return response.data;
+  },
+
+  unlock: async (id: string) => {
+    const response = await api.delete(`/threads/${id}/lock`);
+    return response.data;
+  },
+
+  vote: async (id: string, type: 'up' | 'down') => {
+    const response = await api.post(`/threads/${id}/vote`, { type });
+    return response.data;
+  },
+
+  removeVote: async (id: string) => {
+    const response = await api.delete(`/threads/${id}/vote`);
+    return response.data;
+  }
+};
+
+// Posts API
+export const postsAPI = {
+  getByThread: async (threadId: string, params?: {
+    page?: number;
+    limit?: number;
+    sort?: 'oldest' | 'newest' | 'popular';
+  }) => {
+    const response = await api.get(`/threads/${threadId}/posts`, { params });
+    return response.data;
+  },
+
+  getById: async (id: string) => {
+    const response = await api.get(`/posts/${id}`);
+    return response.data;
+  },
+
+  create: async (data: {
+    content: string;
+    threadId: string;
+    parentId?: string;
+  }) => {
+    const response = await api.post('/posts', data);
+    return response.data;
+  },
+
+  update: async (id: string, data: {
+    content: string;
+  }) => {
+    const response = await api.put(`/posts/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: string) => {
+    const response = await api.delete(`/posts/${id}`);
+    return response.data;
+  },
+
+  vote: async (id: string, type: 'up' | 'down') => {
+    const response = await api.post(`/posts/${id}/vote`, { type });
+    return response.data;
+  },
+
+  removeVote: async (id: string) => {
+    const response = await api.delete(`/posts/${id}/vote`);
+    return response.data;
+  },
+
+  markAsAnswer: async (id: string) => {
+    const response = await api.post(`/posts/${id}/answer`);
+    return response.data;
+  },
+
+  unmarkAsAnswer: async (id: string) => {
+    const response = await api.delete(`/posts/${id}/answer`);
+    return response.data;
   }
 };
 
 // Search API
-export const searchContent = async (query: string) => {
-  try {
-    const response = await api.get(`/search?q=${encodeURIComponent(query)}`);
-    console.log('Search API response:', response.data);
-    
-    // Handle the actual backend response structure
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
-    }
-    
-    if (response.data?.results) {
-      return response.data.results;
-    }
-    
-    return response.data || [];
-  } catch (error) {
-    console.warn('Backend not available, returning empty search results');
-    return [];
+export const searchAPI = {
+  search: async (params: {
+    q: string;
+    type?: 'all' | 'threads' | 'posts' | 'users';
+    categoryId?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const response = await api.get('/search', { params });
+    return response.data;
+  },
+
+  suggestions: async (q: string) => {
+    const response = await api.get('/search/suggestions', { params: { q } });
+    return response.data;
   }
 };
 
-// Marketplace API endpoints
-export const fetchListings = async (params?: {
-  category?: string;
-  search?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  location?: string;
-  page?: number;
-  limit?: number;
-}) => {
-  try {
-    const queryParams = new URLSearchParams();
-    if (params?.category) queryParams.append('category', params.category);
-    if (params?.search) queryParams.append('search', params.search);
-    if (params?.minPrice) queryParams.append('minPrice', params.minPrice.toString());
-    if (params?.maxPrice) queryParams.append('maxPrice', params.maxPrice.toString());
-    if (params?.location) queryParams.append('location', params.location);
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
+// Notifications API
+export const notificationsAPI = {
+  getAll: async (params?: {
+    page?: number;
+    limit?: number;
+    unreadOnly?: boolean;
+  }) => {
+    const response = await api.get('/notifications', { params });
+    return response.data;
+  },
 
-    const url = `/marketplace/listings${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    const response = await api.get(url);
-    console.log('Listings API response:', response.data);
-    
-    // Handle the actual backend response structure
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
-    }
-    
-    // Handle direct array response
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-    
-    // Handle nested listings property
-    if (response.data?.listings) {
-      return response.data.listings;
-    }
-    
-    return response.data || [];
-  } catch (error) {
-    console.warn('Backend not available, returning empty listings');
-    return [];
+  markAsRead: async (id: string) => {
+    const response = await api.put(`/notifications/${id}/read`);
+    return response.data;
+  },
+
+  markAllAsRead: async () => {
+    const response = await api.put('/notifications/read-all');
+    return response.data;
+  },
+
+  delete: async (id: string) => {
+    const response = await api.delete(`/notifications/${id}`);
+    return response.data;
+  },
+
+  getUnreadCount: async () => {
+    const response = await api.get('/notifications/unread-count');
+    return response.data;
   }
 };
 
-export const fetchListing = async (id: string) => {
-  try {
+// Marketplace API
+export const marketplaceAPI = {
+  getListings: async (params?: {
+    category?: string;
+    search?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    location?: string;
+    condition?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+    sort?: 'newest' | 'oldest' | 'price-low' | 'price-high' | 'popular';
+  }) => {
+    const response = await api.get('/marketplace/listings', { params });
+    return response.data;
+  },
+
+  getListing: async (id: string) => {
     const response = await api.get(`/marketplace/listings/${id}`);
-    console.log('Listing API response:', response.data);
-    
-    // Handle the actual backend response structure
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
-    }
-    
-    if (response.data?.listing) {
-      return response.data.listing;
-    }
-    
     return response.data;
-  } catch (error) {
-    console.error('Error fetching listing:', error);
-    throw error;
-  }
-};
+  },
 
-export const createListing = async (data: {
-  title: string;
-  description: string;
-  price: number;
-  category: string;
-  location: string;
-  images?: string[];
-  condition?: 'new' | 'like-new' | 'good' | 'fair' | 'poor';
-  tags?: string[];
-}) => {
-  try {
+  createListing: async (data: {
+    title: string;
+    description: string;
+    price: number;
+    category: string;
+    location: string;
+    condition: 'new' | 'like-new' | 'good' | 'fair' | 'poor';
+    images?: string[];
+    tags?: string[];
+  }) => {
     const response = await api.post('/marketplace/listings', data);
-    console.log('Create listing API response:', response.data);
-    
-    // Handle the actual backend response structure
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
-    }
-    
-    if (response.data?.listing) {
-      return response.data.listing;
-    }
-    
     return response.data;
-  } catch (error) {
-    console.error('Error creating listing:', error);
-    throw error;
-  }
-};
+  },
 
-export const updateListing = async (id: string, data: {
-  title?: string;
-  description?: string;
-  price?: number;
-  category?: string;
-  location?: string;
-  images?: string[];
-  condition?: 'new' | 'like-new' | 'good' | 'fair' | 'poor';
-  tags?: string[];
-  status?: 'active' | 'sold' | 'inactive';
-}) => {
-  try {
+  updateListing: async (id: string, data: {
+    title?: string;
+    description?: string;
+    price?: number;
+    category?: string;
+    location?: string;
+    condition?: 'new' | 'like-new' | 'good' | 'fair' | 'poor';
+    images?: string[];
+    tags?: string[];
+    status?: 'active' | 'sold' | 'inactive';
+  }) => {
     const response = await api.put(`/marketplace/listings/${id}`, data);
-    console.log('Update listing API response:', response.data);
-    
-    // Handle the actual backend response structure
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
-    }
-    
-    if (response.data?.listing) {
-      return response.data.listing;
-    }
-    
     return response.data;
-  } catch (error) {
-    console.error('Error updating listing:', error);
-    throw error;
-  }
-};
+  },
 
-export const deleteListing = async (id: string) => {
-  try {
+  deleteListing: async (id: string) => {
     const response = await api.delete(`/marketplace/listings/${id}`);
-    console.log('Delete listing API response:', response.data);
     return response.data;
-  } catch (error) {
-    console.error('Error deleting listing:', error);
-    throw error;
-  }
-};
+  },
 
-export const fetchMyListings = async () => {
-  try {
-    const response = await api.get('/marketplace/my-listings');
-    console.log('My listings API response:', response.data);
-    
-    // Handle the actual backend response structure
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
-    }
-    
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-    
-    if (response.data?.listings) {
-      return response.data.listings;
-    }
-    
-    return response.data || [];
-  } catch (error) {
-    console.warn('Backend not available, returning empty listings');
-    return [];
-  }
-};
-
-export const markListingAsSold = async (id: string) => {
-  try {
-    const response = await api.patch(`/marketplace/listings/${id}/sold`);
-    console.log('Mark as sold API response:', response.data);
-    
-    // Handle the actual backend response structure
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
-    }
-    
-    if (response.data?.listing) {
-      return response.data.listing;
-    }
-    
+  getMyListings: async (params?: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const response = await api.get('/marketplace/my-listings', { params });
     return response.data;
-  } catch (error) {
-    console.error('Error marking listing as sold:', error);
-    throw error;
-  }
-};
+  },
 
-export const favoriteListingToggle = async (id: string) => {
-  try {
+  markAsSold: async (id: string) => {
+    const response = await api.post(`/marketplace/listings/${id}/sold`);
+    return response.data;
+  },
+
+  toggleFavorite: async (id: string) => {
     const response = await api.post(`/marketplace/listings/${id}/favorite`);
-    console.log('Favorite toggle API response:', response.data);
     return response.data;
-  } catch (error) {
-    console.error('Error toggling favorite:', error);
-    throw error;
-  }
-};
+  },
 
-export const fetchFavoriteListings = async () => {
-  try {
-    const response = await api.get('/marketplace/favorites');
-    console.log('Favorite listings API response:', response.data);
-    
-    // Handle the actual backend response structure
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
-    }
-    
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-    
-    if (response.data?.listings) {
-      return response.data.listings;
-    }
-    
-    return response.data || [];
-  } catch (error) {
-    console.warn('Backend not available, returning empty favorites');
-    return [];
-  }
-};
-
-export const reportListing = async (id: string, reason: string, description?: string) => {
-  try {
-    const response = await api.post(`/marketplace/listings/${id}/report`, {
-      reason,
-      description
-    });
-    console.log('Report listing API response:', response.data);
+  getFavorites: async (params?: {
+    page?: number;
+    limit?: number;
+  }) => {
+    const response = await api.get('/marketplace/favorites', { params });
     return response.data;
-  } catch (error) {
-    console.error('Error reporting listing:', error);
-    throw error;
-  }
-};
+  },
 
-export const fetchMarketplaceCategories = async () => {
-  try {
+  reportListing: async (id: string, data: {
+    reason: string;
+    description?: string;
+  }) => {
+    const response = await api.post(`/marketplace/listings/${id}/report`, data);
+    return response.data;
+  },
+
+  contactSeller: async (id: string, data: {
+    message: string;
+  }) => {
+    const response = await api.post(`/marketplace/listings/${id}/contact`, data);
+    return response.data;
+  },
+
+  getCategories: async () => {
     const response = await api.get('/marketplace/categories');
-    console.log('Marketplace categories API response:', response.data);
-    
-    // Handle the actual backend response structure
-    if (response.data?.success && response.data?.data) {
-      return response.data.data;
-    }
-    
-    // Handle direct array response
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-    
-    // Handle nested categories property
-    if (response.data?.categories) {
-      return response.data.categories;
-    }
-    
-    return response.data || [];
-  } catch (error) {
-    console.warn('Backend not available, returning empty marketplace categories');
-    return [];
+    return response.data;
+  },
+
+  uploadImages: async (files: File[]) => {
+    const formData = new FormData();
+    files.forEach(file => formData.append('images', file));
+    const response = await api.post('/marketplace/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
   }
 };
 
-export const contactSeller = async (listingId: string, message: string) => {
-  try {
-    const response = await api.post(`/marketplace/listings/${listingId}/contact`, {
-      message
-    });
-    console.log('Contact seller API response:', response.data);
+// Messages API
+export const messagesAPI = {
+  getConversations: async (params?: {
+    page?: number;
+    limit?: number;
+  }) => {
+    const response = await api.get('/messages/conversations', { params });
     return response.data;
-  } catch (error) {
-    console.error('Error contacting seller:', error);
-    throw error;
+  },
+
+  getConversation: async (id: string, params?: {
+    page?: number;
+    limit?: number;
+  }) => {
+    const response = await api.get(`/messages/conversations/${id}`, { params });
+    return response.data;
+  },
+
+  sendMessage: async (data: {
+    recipientId?: string;
+    conversationId?: string;
+    content: string;
+  }) => {
+    const response = await api.post('/messages', data);
+    return response.data;
+  },
+
+  markAsRead: async (conversationId: string) => {
+    const response = await api.put(`/messages/conversations/${conversationId}/read`);
+    return response.data;
+  },
+
+  deleteConversation: async (id: string) => {
+    const response = await api.delete(`/messages/conversations/${id}`);
+    return response.data;
   }
 };
+
+// Reports API
+export const reportsAPI = {
+  create: async (data: {
+    type: 'thread' | 'post' | 'user' | 'listing';
+    targetId: string;
+    reason: string;
+    description?: string;
+  }) => {
+    const response = await api.post('/reports', data);
+    return response.data;
+  },
+
+  getAll: async (params?: {
+    type?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const response = await api.get('/reports', { params });
+    return response.data;
+  },
+
+  getById: async (id: string) => {
+    const response = await api.get(`/reports/${id}`);
+    return response.data;
+  },
+
+  updateStatus: async (id: string, status: 'pending' | 'resolved' | 'dismissed') => {
+    const response = await api.put(`/reports/${id}/status`, { status });
+    return response.data;
+  }
+};
+
+// Analytics API
+export const analyticsAPI = {
+  getStats: async () => {
+    const response = await api.get('/analytics/stats');
+    return response.data;
+  },
+
+  getUserActivity: async (params?: {
+    period?: 'day' | 'week' | 'month' | 'year';
+    userId?: string;
+  }) => {
+    const response = await api.get('/analytics/user-activity', { params });
+    return response.data;
+  },
+
+  getPopularContent: async (params?: {
+    type?: 'threads' | 'posts';
+    period?: 'day' | 'week' | 'month' | 'year';
+    limit?: number;
+  }) => {
+    const response = await api.get('/analytics/popular-content', { params });
+    return response.data;
+  }
+};
+
+// Legacy API functions for backward compatibility
+export const fetchCategories = categoriesAPI.getAll;
+export const fetchCategory = categoriesAPI.getBySlug;
+export const fetchThreads = threadsAPI.getAll;
+export const fetchThread = threadsAPI.getById;
+export const createThread = threadsAPI.create;
+export const fetchPosts = postsAPI.getByThread;
+export const createPost = postsAPI.create;
+export const fetchUserProfile = usersAPI.getProfile;
+export const updateUserProfile = usersAPI.updateProfile;
+export const searchContent = searchAPI.search;
+export const fetchListings = marketplaceAPI.getListings;
+export const fetchListing = marketplaceAPI.getListing;
+export const createListing = marketplaceAPI.createListing;
+export const updateListing = marketplaceAPI.updateListing;
+export const deleteListing = marketplaceAPI.deleteListing;
+export const fetchMyListings = marketplaceAPI.getMyListings;
+export const markListingAsSold = marketplaceAPI.markAsSold;
+export const favoriteListingToggle = marketplaceAPI.toggleFavorite;
+export const fetchFavoriteListings = marketplaceAPI.getFavorites;
+export const reportListing = marketplaceAPI.reportListing;
+export const fetchMarketplaceCategories = marketplaceAPI.getCategories;
+export const contactSeller = marketplaceAPI.contactSeller;
 
 export default api;
