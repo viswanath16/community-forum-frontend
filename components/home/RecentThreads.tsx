@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Thread } from '@/types';
-import { fetchThreads } from '@/lib/api';
+import { threadsAPI } from '@/lib/api';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,16 +20,28 @@ export default function RecentThreads() {
     const loadThreads = async () => {
       try {
         setLoading(true);
-        const data = await fetchThreads();
-        console.log('Threads loaded:', data); // Debug log
+        const data = await threadsAPI.getAll({ limit: 5, sort: 'latest' });
         
         // Ensure we have an array and limit to 5 recent threads
-        const threadsArray = Array.isArray(data) ? data : [];
+        let threadsArray: Thread[] = [];
+        
+        if (Array.isArray(data)) {
+          threadsArray = data;
+        } else if (data && Array.isArray(data.threads)) {
+          threadsArray = data.threads;
+        } else if (data && Array.isArray(data.data)) {
+          threadsArray = data.data;
+        } else {
+          console.warn('Unexpected threads data format:', data);
+          threadsArray = [];
+        }
+        
         setThreads(threadsArray.slice(0, 5));
         setError(null);
       } catch (err) {
         console.error('Error loading threads:', err);
         setError('Failed to load recent threads. Please try again later.');
+        setThreads([]); // Ensure threads is always an array
       } finally {
         setLoading(false);
       }
@@ -76,7 +88,10 @@ export default function RecentThreads() {
     );
   }
 
-  if (threads.length === 0) {
+  // Ensure threads is an array
+  const threadsArray = Array.isArray(threads) ? threads : [];
+
+  if (threadsArray.length === 0) {
     return (
       <div className="text-center p-6">
         <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -87,7 +102,7 @@ export default function RecentThreads() {
 
   return (
     <div className="space-y-4">
-      {threads.map((thread) => (
+      {threadsArray.map((thread) => (
         <Link key={thread.id} href={`/threads/${thread.id}`}>
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardHeader className="pb-2">

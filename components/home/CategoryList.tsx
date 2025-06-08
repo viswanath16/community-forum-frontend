@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Category } from '@/types';
-import { fetchCategories } from '@/lib/api';
+import { categoriesAPI } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -18,16 +18,28 @@ export default function CategoryList() {
     const loadCategories = async () => {
       try {
         setLoading(true);
-        const data = await fetchCategories();
-        console.log('Categories loaded:', data); // Debug log
+        const data = await categoriesAPI.getAll();
         
         // Ensure we have an array and limit to 6 categories for homepage
-        const categoriesArray = Array.isArray(data) ? data : [];
+        let categoriesArray: Category[] = [];
+        
+        if (Array.isArray(data)) {
+          categoriesArray = data;
+        } else if (data && Array.isArray(data.categories)) {
+          categoriesArray = data.categories;
+        } else if (data && Array.isArray(data.data)) {
+          categoriesArray = data.data;
+        } else {
+          console.warn('Unexpected categories data format:', data);
+          categoriesArray = [];
+        }
+        
         setCategories(categoriesArray.slice(0, 6));
         setError(null);
       } catch (err) {
         console.error('Error loading categories:', err);
         setError('Failed to load categories. Please try again later.');
+        setCategories([]); // Ensure categories is always an array
       } finally {
         setLoading(false);
       }
@@ -66,7 +78,10 @@ export default function CategoryList() {
     );
   }
 
-  if (categories.length === 0) {
+  // Ensure categories is an array
+  const categoriesArray = Array.isArray(categories) ? categories : [];
+
+  if (categoriesArray.length === 0) {
     return (
       <div className="text-center p-6">
         <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -77,7 +92,7 @@ export default function CategoryList() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {categories.map((category) => (
+      {categoriesArray.map((category) => (
         <Link key={category.id} href={`/categories/${category.slug}`}>
           <Card className="hover:shadow-md transition-shadow h-full cursor-pointer">
             <CardHeader className="pb-2">

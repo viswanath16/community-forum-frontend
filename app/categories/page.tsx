@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { fetchCategories } from '@/lib/api';
+import { categoriesAPI } from '@/lib/api';
 import { Category } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,12 +18,28 @@ export default function CategoriesPage() {
     const loadCategories = async () => {
       try {
         setLoading(true);
-        const data = await fetchCategories();
-        setCategories(data);
+        const data = await categoriesAPI.getAll();
+        
+        // Ensure we have an array
+        let categoriesArray: Category[] = [];
+        
+        if (Array.isArray(data)) {
+          categoriesArray = data;
+        } else if (data && Array.isArray(data.categories)) {
+          categoriesArray = data.categories;
+        } else if (data && Array.isArray(data.data)) {
+          categoriesArray = data.data;
+        } else {
+          console.warn('Unexpected categories data format:', data);
+          categoriesArray = [];
+        }
+        
+        setCategories(categoriesArray);
         setError(null);
       } catch (err) {
         console.error('Error loading categories:', err);
         setError('Failed to load categories. Please try again later.');
+        setCategories([]); // Ensure categories is always an array
       } finally {
         setLoading(false);
       }
@@ -70,9 +86,12 @@ export default function CategoriesPage() {
     );
   }
 
+  // Ensure categories is an array before filtering
+  const categoriesArray = Array.isArray(categories) ? categories : [];
+
   // Group categories by parent/child relationship
-  const parentCategories = categories.filter(category => !category.parentId);
-  const childCategories = categories.filter(category => category.parentId);
+  const parentCategories = categoriesArray.filter(category => !category.parentId);
+  const childCategories = categoriesArray.filter(category => category.parentId);
   
   // Add subcategories to each parent
   parentCategories.forEach(parent => {
@@ -91,61 +110,71 @@ export default function CategoriesPage() {
         </p>
       </div>
       
-      <div className="space-y-6">
-        {parentCategories.map((category) => (
-          <div key={category.id}>
-            <Link href={`/categories/${category.slug}`}>
-              <Card className="hover:shadow-md transition-shadow mb-4 cursor-pointer">
-                <CardHeader className="pb-2">
-                  <CardTitle>{category.name}</CardTitle>
-                  <CardDescription>{category.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between items-center">
-                    <div className="flex space-x-4">
-                      <Badge variant="secondary">
-                        {category.threadCount} {category.threadCount === 1 ? 'thread' : 'threads'}
-                      </Badge>
-                      <Badge variant="outline">
-                        {category.postCount} {category.postCount === 1 ? 'post' : 'posts'}
-                      </Badge>
+      {parentCategories.length === 0 ? (
+        <div className="text-center py-8">
+          <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-lg font-semibold mb-2">No categories available</h3>
+          <p className="text-muted-foreground">
+            Categories will appear here once they are created.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {parentCategories.map((category) => (
+            <div key={category.id}>
+              <Link href={`/categories/${category.slug}`}>
+                <Card className="hover:shadow-md transition-shadow mb-4 cursor-pointer">
+                  <CardHeader className="pb-2">
+                    <CardTitle>{category.name}</CardTitle>
+                    <CardDescription>{category.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex justify-between items-center">
+                      <div className="flex space-x-4">
+                        <Badge variant="secondary">
+                          {category.threadCount || 0} {(category.threadCount || 0) === 1 ? 'thread' : 'threads'}
+                        </Badge>
+                        <Badge variant="outline">
+                          {category.postCount || 0} {(category.postCount || 0) === 1 ? 'post' : 'posts'}
+                        </Badge>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
                     </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-            
-            {category.subcategories && category.subcategories.length > 0 && (
-              <div className="ml-8 space-y-4 mt-4 mb-6">
-                {category.subcategories.map((subcategory) => (
-                  <Link key={subcategory.id} href={`/categories/${subcategory.slug}`}>
-                    <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-primary">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">{subcategory.name}</CardTitle>
-                        <CardDescription>{subcategory.description}</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex justify-between items-center">
-                          <div className="flex space-x-4">
-                            <Badge variant="secondary">
-                              {subcategory.threadCount} {subcategory.threadCount === 1 ? 'thread' : 'threads'}
-                            </Badge>
-                            <Badge variant="outline">
-                              {subcategory.postCount} {subcategory.postCount === 1 ? 'post' : 'posts'}
-                            </Badge>
+                  </CardContent>
+                </Card>
+              </Link>
+              
+              {category.subcategories && category.subcategories.length > 0 && (
+                <div className="ml-8 space-y-4 mt-4 mb-6">
+                  {category.subcategories.map((subcategory) => (
+                    <Link key={subcategory.id} href={`/categories/${subcategory.slug}`}>
+                      <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-primary">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-lg">{subcategory.name}</CardTitle>
+                          <CardDescription>{subcategory.description}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex justify-between items-center">
+                            <div className="flex space-x-4">
+                              <Badge variant="secondary">
+                                {subcategory.threadCount || 0} {(subcategory.threadCount || 0) === 1 ? 'thread' : 'threads'}
+                              </Badge>
+                              <Badge variant="outline">
+                                {subcategory.postCount || 0} {(subcategory.postCount || 0) === 1 ? 'post' : 'posts'}
+                              </Badge>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
                           </div>
-                          <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
