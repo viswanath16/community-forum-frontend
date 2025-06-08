@@ -178,83 +178,30 @@ export const categoriesAPI = {
   }
 };
 
-// Threads API - Updated to use mock data for demonstration
+// Threads API - Updated to use correct endpoints
 export const threadsAPI = {
   getAll: async (params?: any) => {
-    try {
-      // Use JSONPlaceholder posts as mock threads data
-      const response = await api.get('/posts');
-      
-      // Transform the mock data to match our Thread interface
-      const mockThreads = response.data.slice(0, 10).map((post: any, index: number) => ({
-        id: post.id.toString(),
-        title: post.title,
-        content: post.body,
-        author: {
-          id: post.userId.toString(),
-          username: `user${post.userId}`,
-          email: `user${post.userId}@example.com`,
-          avatarUrl: `https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop&crop=face`
-        },
-        categoryId: '1',
-        createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date().toISOString(),
-        isPinned: index < 2,
-        isLocked: false,
-        postCount: Math.floor(Math.random() * 20) + 1,
-        viewCount: Math.floor(Math.random() * 1000) + 10,
-        upvotes: Math.floor(Math.random() * 50),
-        downvotes: Math.floor(Math.random() * 10),
-        tags: []
-      }));
-      
-      return mockThreads;
-    } catch (error) {
-      console.error('Error fetching threads:', error);
-      throw error;
-    }
+    const response = await api.get('/threads', { params });
+    return response.data;
   },
 
   getById: async (id: string) => {
-    const response = await api.get(`/posts/${id}`);
-    
-    // Transform the mock data to match our Thread interface
-    const post = response.data;
-    return {
-      id: post.id.toString(),
-      title: post.title,
-      content: post.body,
-      author: {
-        id: post.userId.toString(),
-        username: `user${post.userId}`,
-        email: `user${post.userId}@example.com`,
-        avatarUrl: `https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop&crop=face`
-      },
-      categoryId: '1',
-      createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
-      updatedAt: new Date().toISOString(),
-      isPinned: false,
-      isLocked: false,
-      postCount: Math.floor(Math.random() * 20) + 1,
-      viewCount: Math.floor(Math.random() * 1000) + 10,
-      upvotes: Math.floor(Math.random() * 50),
-      downvotes: Math.floor(Math.random() * 10),
-      tags: []
-    };
+    const response = await api.get(`/threads/${id}`);
+    return response.data;
   },
 
   create: async (data: any) => {
-    const response = await api.post('/posts', data);
+    const response = await api.post('/threads', data);
     return response.data;
   },
 
   update: async (id: string, data: any) => {
-    const response = await api.put(`/posts/${id}`, data);
+    const response = await api.put(`/threads/${id}`, data);
     return response.data;
   },
 
   delete: async (id: string) => {
-    const response = await api.delete(`/posts/${id}`);
+    const response = await api.delete(`/threads/${id}`);
     return response.data;
   },
 
