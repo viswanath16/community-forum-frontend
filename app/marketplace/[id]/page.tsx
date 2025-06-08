@@ -22,7 +22,7 @@ export default function ListingPage() {
   const [listing, setListing] = useState<MarketplaceListing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null); // Fixed: Proper typing
+  const [user, setUser] = useState<User | null>(null);
   const [contactMessage, setContactMessage] = useState('');
   const [showContactForm, setShowContactForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -192,7 +192,7 @@ export default function ListingPage() {
                 />
                 {listing.status === 'sold' && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <Badge variant="destructive\" className="text-2xl">SOLD</Badge>
+                    <Badge variant="destructive" className="text-2xl">SOLD</Badge>
                   </div>
                 )}
               </div>

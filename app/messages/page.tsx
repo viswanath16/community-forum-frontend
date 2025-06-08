@@ -257,7 +257,7 @@ export default function MessagesPage() {
                         
                         <div className="flex flex-col items-end space-y-1">
                           {conversation.unreadCount > 0 && (
-                            <Badge variant="destructive\" className="text-xs">
+                            <Badge variant="destructive" className="text-xs">
                               {conversation.unreadCount}
                             </Badge>
                           )}

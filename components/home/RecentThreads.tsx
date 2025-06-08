@@ -20,22 +20,23 @@ export default function RecentThreads() {
     const loadThreads = async () => {
       try {
         setLoading(true);
-        const data = await threadsAPI.getAll({ limit: 5, sort: 'latest' });
+        const response = await threadsAPI.getAll({ limit: 5, sort: 'latest' });
         
-        // Ensure we have an array and limit to 5 recent threads
+        // Handle the API response structure - the mock API returns { data: Thread[] }
         let threadsArray: Thread[] = [];
         
-        if (Array.isArray(data)) {
-          threadsArray = data;
-        } else if (data && Array.isArray(data.threads)) {
-          threadsArray = data.threads;
-        } else if (data && Array.isArray(data.data)) {
-          threadsArray = data.data;
+        if (Array.isArray(response)) {
+          // Direct array response
+          threadsArray = response;
+        } else if (response && Array.isArray(response.data)) {
+          // Response with data property containing array
+          threadsArray = response.data;
         } else {
-          console.warn('Unexpected threads data format:', data);
+          console.warn('Unexpected threads data format:', response);
           threadsArray = [];
         }
         
+        // Limit to 5 recent threads
         setThreads(threadsArray.slice(0, 5));
         setError(null);
       } catch (err) {

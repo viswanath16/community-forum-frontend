@@ -18,19 +18,19 @@ export default function CategoriesPage() {
     const loadCategories = async () => {
       try {
         setLoading(true);
-        const data = await categoriesAPI.getAll();
+        const response = await categoriesAPI.getAll();
         
-        // Ensure we have an array
+        // Handle the API response structure - the mock API returns { data: Category[] }
         let categoriesArray: Category[] = [];
         
-        if (Array.isArray(data)) {
-          categoriesArray = data;
-        } else if (data && Array.isArray(data.categories)) {
-          categoriesArray = data.categories;
-        } else if (data && Array.isArray(data.data)) {
-          categoriesArray = data.data;
+        if (Array.isArray(response)) {
+          // Direct array response
+          categoriesArray = response;
+        } else if (response && Array.isArray(response.data)) {
+          // Response with data property containing array
+          categoriesArray = response.data;
         } else {
-          console.warn('Unexpected categories data format:', data);
+          console.warn('Unexpected categories data format:', response);
           categoriesArray = [];
         }
         

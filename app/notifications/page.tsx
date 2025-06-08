@@ -183,7 +183,7 @@ export default function NotificationsPage() {
               <Bell className="mr-2 h-7 w-7" />
               Notifications
               {unreadCount > 0 && (
-                <Badge variant="destructive\" className="ml-2">
+                <Badge variant="destructive" className="ml-2">
                   {unreadCount}
                 </Badge>
               )}
