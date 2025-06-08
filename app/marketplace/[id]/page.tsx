@@ -192,7 +192,7 @@ export default function ListingPage() {
                 />
                 {listing.status === 'sold' && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <Badge variant="destructive" className="text-2xl">SOLD</Badge>
+                    <Badge variant="destructive\" className="text-2xl">SOLD</Badge>
                   </div>
                 )}
               </div>
