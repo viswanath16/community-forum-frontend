@@ -123,9 +123,11 @@ export default function CategoriesPage() {
           {parentCategories.map((category) => (
             <div key={category.id}>
               <Link href={`/categories/${category.slug}`}>
-                <Card className="hover:shadow-md transition-shadow mb-4 cursor-pointer">
+                <Card className="hover:shadow-md transition-shadow mb-4 cursor-pointer group">
                   <CardHeader className="pb-2">
-                    <CardTitle>{category.name}</CardTitle>
+                    <CardTitle className="group-hover:text-primary transition-colors">
+                      {category.name}
+                    </CardTitle>
                     <CardDescription>{category.description}</CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -138,7 +140,7 @@ export default function CategoriesPage() {
                           {category.postCount || 0} {(category.postCount || 0) === 1 ? 'post' : 'posts'}
                         </Badge>
                       </div>
-                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                     </div>
                   </CardContent>
                 </Card>
@@ -148,9 +150,11 @@ export default function CategoriesPage() {
                 <div className="ml-8 space-y-4 mt-4 mb-6">
                   {category.subcategories.map((subcategory) => (
                     <Link key={subcategory.id} href={`/categories/${subcategory.slug}`}>
-                      <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-primary">
+                      <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-primary group">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-lg">{subcategory.name}</CardTitle>
+                          <CardTitle className="text-lg group-hover:text-primary transition-colors">
+                            {subcategory.name}
+                          </CardTitle>
                           <CardDescription>{subcategory.description}</CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -163,7 +167,7 @@ export default function CategoriesPage() {
                                 {subcategory.postCount || 0} {(subcategory.postCount || 0) === 1 ? 'post' : 'posts'}
                               </Badge>
                             </div>
-                            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                           </div>
                         </CardContent>
                       </Card>

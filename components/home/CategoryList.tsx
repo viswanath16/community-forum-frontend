@@ -94,19 +94,28 @@ export default function CategoryList() {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {categoriesArray.map((category) => (
         <Link key={category.id} href={`/categories/${category.slug}`}>
-          <Card className="hover:shadow-md transition-shadow h-full cursor-pointer">
+          <Card className="hover:shadow-md transition-shadow h-full cursor-pointer group">
             <CardHeader className="pb-2">
-              <CardTitle>{category.name}</CardTitle>
+              <CardTitle className="group-hover:text-primary transition-colors">
+                {category.name}
+              </CardTitle>
               <CardDescription className="line-clamp-2">
                 {category.description}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex justify-between items-center mt-2">
-                <Badge variant="secondary">
-                  {category.threadCount || 0} {(category.threadCount || 0) === 1 ? 'thread' : 'threads'}
-                </Badge>
-                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                <div className="flex gap-2">
+                  <Badge variant="secondary" className="text-xs">
+                    {category.threadCount || 0} {(category.threadCount || 0) === 1 ? 'thread' : 'threads'}
+                  </Badge>
+                  {category.postCount !== undefined && (
+                    <Badge variant="outline" className="text-xs">
+                      {category.postCount} {category.postCount === 1 ? 'post' : 'posts'}
+                    </Badge>
+                  )}
+                </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
               </div>
             </CardContent>
           </Card>

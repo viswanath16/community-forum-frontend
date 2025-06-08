@@ -45,10 +45,10 @@ const generateMockUser = (id: number): User => ({
 const generateMockCategory = (id: number): Category => ({
   id: id.toString(),
   name: `Category ${id}`,
-  description: `Description for category ${id}`,
+  description: `Description for category ${id}. This is a sample category for demonstration purposes.`,
   slug: `category-${id}`,
-  threadCount: Math.floor(Math.random() * 50),
-  postCount: Math.floor(Math.random() * 200),
+  threadCount: Math.floor(Math.random() * 50) + 1,
+  postCount: Math.floor(Math.random() * 200) + 10,
 });
 
 const generateMockThread = (id: number): Thread => ({
@@ -196,14 +196,113 @@ export const usersAPI = {
 export const categoriesAPI = {
   getAll: async () => {
     await new Promise(resolve => setTimeout(resolve, 500));
-    const categories = Array.from({ length: 6 }, (_, i) => generateMockCategory(i + 1));
+    const categories = [
+      {
+        id: '1',
+        name: 'General Discussion',
+        description: 'General topics and casual conversations',
+        slug: 'general-discussion',
+        threadCount: 45,
+        postCount: 234,
+      },
+      {
+        id: '2',
+        name: 'Technology',
+        description: 'Discussions about technology, programming, and innovation',
+        slug: 'technology',
+        threadCount: 32,
+        postCount: 189,
+      },
+      {
+        id: '3',
+        name: 'Gaming',
+        description: 'Video games, board games, and gaming culture',
+        slug: 'gaming',
+        threadCount: 28,
+        postCount: 156,
+      },
+      {
+        id: '4',
+        name: 'Science',
+        description: 'Scientific discoveries, research, and discussions',
+        slug: 'science',
+        threadCount: 21,
+        postCount: 98,
+      },
+      {
+        id: '5',
+        name: 'Arts & Culture',
+        description: 'Art, music, literature, and cultural discussions',
+        slug: 'arts-culture',
+        threadCount: 19,
+        postCount: 87,
+      },
+      {
+        id: '6',
+        name: 'Sports',
+        description: 'Sports news, discussions, and fan communities',
+        slug: 'sports',
+        threadCount: 15,
+        postCount: 76,
+      }
+    ];
     return { data: categories };
   },
 
   getBySlug: async (slug: string) => {
     await new Promise(resolve => setTimeout(resolve, 500));
-    const id = parseInt(slug.split('-')[1]) || 1;
-    const category = generateMockCategory(id);
+    const categories = [
+      {
+        id: '1',
+        name: 'General Discussion',
+        description: 'General topics and casual conversations',
+        slug: 'general-discussion',
+        threadCount: 45,
+        postCount: 234,
+      },
+      {
+        id: '2',
+        name: 'Technology',
+        description: 'Discussions about technology, programming, and innovation',
+        slug: 'technology',
+        threadCount: 32,
+        postCount: 189,
+      },
+      {
+        id: '3',
+        name: 'Gaming',
+        description: 'Video games, board games, and gaming culture',
+        slug: 'gaming',
+        threadCount: 28,
+        postCount: 156,
+      },
+      {
+        id: '4',
+        name: 'Science',
+        description: 'Scientific discoveries, research, and discussions',
+        slug: 'science',
+        threadCount: 21,
+        postCount: 98,
+      },
+      {
+        id: '5',
+        name: 'Arts & Culture',
+        description: 'Art, music, literature, and cultural discussions',
+        slug: 'arts-culture',
+        threadCount: 19,
+        postCount: 87,
+      },
+      {
+        id: '6',
+        name: 'Sports',
+        description: 'Sports news, discussions, and fan communities',
+        slug: 'sports',
+        threadCount: 15,
+        postCount: 76,
+      }
+    ];
+    
+    const category = categories.find(cat => cat.slug === slug) || categories[0];
     return { data: category };
   },
 
