@@ -325,30 +325,30 @@ export const notificationsAPI = {
   }
 };
 
-// Marketplace API
+// Marketplace API - Updated to use /api/marketplace endpoint
 export const marketplaceAPI = {
   getListings: async (params?: any) => {
-    const response = await api.get('/marketplace/listings', { params });
+    const response = await api.get('/marketplace', { params });
     return response.data;
   },
 
   getListing: async (id: string) => {
-    const response = await api.get(`/marketplace/listings/${id}`);
+    const response = await api.get(`/marketplace/${id}`);
     return response.data;
   },
 
   createListing: async (data: any) => {
-    const response = await api.post('/marketplace/listings', data);
+    const response = await api.post('/marketplace', data);
     return response.data;
   },
 
   updateListing: async (id: string, data: any) => {
-    const response = await api.put(`/marketplace/listings/${id}`, data);
+    const response = await api.put(`/marketplace/${id}`, data);
     return response.data;
   },
 
   deleteListing: async (id: string) => {
-    const response = await api.delete(`/marketplace/listings/${id}`);
+    const response = await api.delete(`/marketplace/${id}`);
     return response.data;
   },
 
@@ -358,12 +358,12 @@ export const marketplaceAPI = {
   },
 
   markAsSold: async (id: string) => {
-    const response = await api.post(`/marketplace/listings/${id}/sold`);
+    const response = await api.post(`/marketplace/${id}/sold`);
     return response.data;
   },
 
   toggleFavorite: async (id: string) => {
-    const response = await api.post(`/marketplace/listings/${id}/favorite`);
+    const response = await api.post(`/marketplace/${id}/favorite`);
     return response.data;
   },
 
@@ -373,12 +373,12 @@ export const marketplaceAPI = {
   },
 
   reportListing: async (id: string, data: any) => {
-    const response = await api.post(`/marketplace/listings/${id}/report`, data);
+    const response = await api.post(`/marketplace/${id}/report`, data);
     return response.data;
   },
 
   contactSeller: async (id: string, data: any) => {
-    const response = await api.post(`/marketplace/listings/${id}/contact`, data);
+    const response = await api.post(`/marketplace/${id}/contact`, data);
     return response.data;
   },
 
