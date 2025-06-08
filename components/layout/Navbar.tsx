@@ -125,7 +125,7 @@ export default function Navbar() {
               <div className="h-8 w-8 bg-muted rounded-full animate-pulse" />
             ) : user ? (
               <>
-                <Button variant="ghost" size="icon" asChild>
+                <Button variant="ghost\" size="icon\" asChild>
                   <Link href="/notifications">
                     <Bell className="h-5 w-5" />
                   </Link>
